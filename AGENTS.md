@@ -55,7 +55,7 @@ HexDesk/
 │       │   └── openai_compatible.rs  # OpenAI 兼容 API（统一所有 Provider）
 │       ├── tools/            # Agent 工具定义与执行
 │       │   ├── mod.rs        # 工具定义（5 个内置工具）
-│       │   └── executor.rs   # 工具执行器（含确认机制）
+│       │   └── executor.rs   # 工具执行器（含确认机制 + 工作目录限制）
 │       ├── mcp/              # MCP 客户端
 │       │   ├── mod.rs
 │       │   ├── client.rs     # stdio JSON-RPC 通信
@@ -72,7 +72,7 @@ HexDesk/
 │   ├── components/           # UI 组件
 │   │   ├── chat/             # 对话组件
 │   │   │   ├── ChatArea.tsx  # 对话区域 + 欢迎页
-│   │   │   ├── ChatInput.tsx # 输入框（图片/Skills/Agent 模式）
+│   │   │   ├── ChatInput.tsx # 输入框（图片/Skills/Agent 模式/工作目录选择）
 │   │   │   ├── MessageList.tsx
 │   │   │   ├── MessageItem.tsx # 消息渲染（Markdown + think 过滤）
 │   │   │   ├── ToolCallCard.tsx # 工具调用状态卡片
@@ -144,17 +144,17 @@ pnpm tauri build # 生产构建
 
 ## 安全模型
 
-### v1：权限确认 + 目录白名单
-- AI 只能操作用户授权的目录。
+### v1：权限确认 + 工作目录限制
+- 用户在输入框选择工作目录，AI 只能操作该目录内的文件。
+- 文件路径校验：相对路径自动解析到工作目录，绝对路径校验是否在范围内。
+- Shell 命令默认 cwd 为工作目录。
 - 危险命令（rm -rf、format 等）直接拦截。
 - 所有文件写入和 Shell 执行需用户确认。
 
-### v2（后续）：虚拟工作区
-- 文件操作先写到临时目录。
-- 用户预览 diff 后一键同步。
-
-### v3（后续）：虚拟机沙盒
-- 内嵌轻量 VM，AI 在隔离环境执行。
+### v2（后续）：虚拟机沙盒
+- 内嵌 QEMU + 预制 Linux 镜像，AI 在隔离 VM 中执行。
+- 通过 SSH 通信，共享目录挂载用户授权的文件夹。
+- 常驻运行，手动重置。
 
 ## 功能路线
 
@@ -176,7 +176,8 @@ pnpm tauri build # 生产构建
 
 ### v3 — 高级功能（进行中）
 - ✅ Agent 多步规划与自主执行（prompt 驱动 plan-then-execute）
-- 🔲 虚拟机沙盒（待深度讨论方案）
+- ✅ 工作目录选择与限制（参考 QoderWork 设计）
+- 🔲 虚拟机沙盒（QEMU 方案已确定，待实施）
 
 ## CI/CD
 
