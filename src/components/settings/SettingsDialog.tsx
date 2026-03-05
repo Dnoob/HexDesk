@@ -1,14 +1,27 @@
 import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Sun, Moon, Monitor } from "lucide-react"
 import { useSettingsStore } from "@/stores/settings"
+import { useUIStore } from "@/stores/ui"
 import { useMcpStore } from "@/stores/mcp"
 import SchedulerPanel from "./SchedulerPanel"
 
@@ -18,18 +31,46 @@ interface SettingsDialogProps {
 }
 
 const providerPresets: Record<string, { baseUrl: string; model: string }> = {
-  minimax: { baseUrl: "https://api.minimaxi.com/v1", model: "MiniMax-M2.5" },
+  minimax: {
+    baseUrl: "https://api.minimaxi.com/v1",
+    model: "MiniMax-M2.5",
+  },
   openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
   deepseek: { baseUrl: "https://api.deepseek.com", model: "deepseek-chat" },
 }
 
-export default function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const { provider, apiKey, model, baseUrl, maxTokens, temperature, systemPrompt, updateSettings } = useSettingsStore()
+const themeOptions = [
+  { value: "dark" as const, label: "深色", icon: Moon, desc: "深色背景，护眼" },
+  { value: "light" as const, label: "浅色", icon: Sun, desc: "浅色背景，清爽" },
+  { value: "system" as const, label: "跟随系统", icon: Monitor, desc: "自动跟随系统设置" },
+]
+
+export default function SettingsDialog({
+  open,
+  onOpenChange,
+}: SettingsDialogProps) {
+  const {
+    provider,
+    apiKey,
+    model,
+    baseUrl,
+    maxTokens,
+    temperature,
+    systemPrompt,
+    updateSettings,
+  } = useSettingsStore()
+
+  const theme = useUIStore((s) => s.theme)
+  const setTheme = useUIStore((s) => s.setTheme)
 
   const handleProviderChange = (value: string) => {
     const preset = providerPresets[value]
     if (preset) {
-      updateSettings({ provider: value, baseUrl: preset.baseUrl, model: preset.model })
+      updateSettings({
+        provider: value,
+        baseUrl: preset.baseUrl,
+        model: preset.model,
+      })
     } else {
       updateSettings({ provider: value })
     }
@@ -37,31 +78,90 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[580px] border-hex-blue/30 bg-background/95 backdrop-blur-sm">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[620px] border-hex-blue/30 bg-background/95 backdrop-blur-sm p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle className="text-lg font-bold text-hex-cyan">
             设置
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="general">
-          <TabsList className="w-full bg-hex-blue/10 border border-hex-blue/20">
+        <Tabs defaultValue="appearance" className="flex-1">
+          <TabsList className="mx-6 w-[calc(100%-3rem)] bg-hex-blue/10 border border-hex-blue/20">
             <TabsTrigger
-              value="general"
+              value="appearance"
               className="flex-1 data-[state=active]:bg-hex-blue/20 data-[state=active]:text-hex-cyan"
             >
-              通用
+              外观
             </TabsTrigger>
             <TabsTrigger
-              value="scheduler"
+              value="model"
               className="flex-1 data-[state=active]:bg-hex-blue/20 data-[state=active]:text-hex-cyan"
             >
-              定时任务
+              模型
+            </TabsTrigger>
+            <TabsTrigger
+              value="advanced"
+              className="flex-1 data-[state=active]:bg-hex-blue/20 data-[state=active]:text-hex-cyan"
+            >
+              高级
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="general">
-            <div className="flex flex-col gap-5 py-2 max-h-[60vh] overflow-y-auto pr-1">
+          {/* 外观 */}
+          <TabsContent value="appearance" className="px-6 pb-6">
+            <div className="flex flex-col gap-5 pt-2">
+              <section className="flex flex-col gap-3">
+                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
+                  主题
+                </h3>
+                <Separator className="bg-hex-blue/20" />
+                <div className="grid grid-cols-3 gap-3">
+                  {themeOptions.map((opt) => {
+                    const isActive = theme === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setTheme(opt.value)}
+                        className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${
+                          isActive
+                            ? "border-hex-cyan bg-hex-blue/15 shadow-[0_0_16px_rgba(0,200,255,0.1)]"
+                            : "border-hex-blue/20 hover:border-hex-blue/40 hover:bg-hex-blue/5"
+                        }`}
+                      >
+                        <div
+                          className={`flex size-10 items-center justify-center rounded-full ${
+                            isActive
+                              ? "bg-hex-cyan/20 text-hex-cyan"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          <opt.icon className="size-5" />
+                        </div>
+                        <span
+                          className={`text-sm font-medium ${
+                            isActive ? "text-hex-cyan" : "text-foreground"
+                          }`}
+                        >
+                          {opt.label}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground text-center leading-tight">
+                          {opt.desc}
+                        </span>
+                        {isActive && (
+                          <div className="absolute top-2 right-2 size-2 rounded-full bg-hex-cyan shadow-[0_0_6px_rgba(0,200,255,0.6)]" />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            </div>
+          </TabsContent>
+
+          {/* 模型 */}
+          <TabsContent value="model" className="px-6 pb-6">
+            <div className="flex flex-col gap-5 pt-2 max-h-[55vh] overflow-y-auto pr-1">
               {/* 模型配置 */}
               <section className="flex flex-col gap-3">
                 <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
@@ -70,9 +170,20 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                 <Separator className="bg-hex-blue/20" />
 
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="provider" className="text-muted-foreground">服务商</Label>
-                  <Select value={provider} onValueChange={handleProviderChange}>
-                    <SelectTrigger id="provider" className="border-hex-blue/20 focus:border-hex-cyan/50">
+                  <Label
+                    htmlFor="provider"
+                    className="text-muted-foreground"
+                  >
+                    服务商
+                  </Label>
+                  <Select
+                    value={provider}
+                    onValueChange={handleProviderChange}
+                  >
+                    <SelectTrigger
+                      id="provider"
+                      className="border-hex-blue/20 focus:border-hex-cyan/50"
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -85,33 +196,54 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="apiKey" className="text-muted-foreground">API 密钥</Label>
+                  <Label
+                    htmlFor="apiKey"
+                    className="text-muted-foreground"
+                  >
+                    API 密钥
+                  </Label>
                   <Input
                     id="apiKey"
                     type="password"
                     placeholder="输入你的 API 密钥"
                     value={apiKey}
-                    onChange={(e) => updateSettings({ apiKey: e.target.value })}
+                    onChange={(e) =>
+                      updateSettings({ apiKey: e.target.value })
+                    }
                     className="border-hex-blue/20 focus:border-hex-cyan/50"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="model" className="text-muted-foreground">模型</Label>
+                    <Label
+                      htmlFor="model"
+                      className="text-muted-foreground"
+                    >
+                      模型
+                    </Label>
                     <Input
                       id="model"
                       value={model}
-                      onChange={(e) => updateSettings({ model: e.target.value })}
+                      onChange={(e) =>
+                        updateSettings({ model: e.target.value })
+                      }
                       className="border-hex-blue/20 focus:border-hex-cyan/50"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="baseUrl" className="text-muted-foreground">接口地址</Label>
+                    <Label
+                      htmlFor="baseUrl"
+                      className="text-muted-foreground"
+                    >
+                      接口地址
+                    </Label>
                     <Input
                       id="baseUrl"
                       value={baseUrl}
-                      onChange={(e) => updateSettings({ baseUrl: e.target.value })}
+                      onChange={(e) =>
+                        updateSettings({ baseUrl: e.target.value })
+                      }
                       className="border-hex-blue/20 focus:border-hex-cyan/50"
                     />
                   </div>
@@ -127,27 +259,39 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="maxTokens" className="text-muted-foreground">最大令牌数</Label>
+                    <Label
+                      htmlFor="maxTokens"
+                      className="text-muted-foreground"
+                    >
+                      最大令牌数
+                    </Label>
                     <Input
                       id="maxTokens"
                       type="number"
                       min={1}
                       max={65536}
                       value={maxTokens}
-                      onChange={(e) => updateSettings({ maxTokens: Number(e.target.value) })}
+                      onChange={(e) =>
+                        updateSettings({ maxTokens: Number(e.target.value) })
+                      }
                       className="border-hex-blue/20 focus:border-hex-cyan/50"
                     />
                   </div>
                   <div className="flex flex-col gap-2">
                     <Label className="text-muted-foreground">
-                      随机性：<span className="text-hex-cyan font-mono">{temperature.toFixed(1)}</span>
+                      随机性：
+                      <span className="text-hex-cyan font-mono">
+                        {temperature.toFixed(1)}
+                      </span>
                     </Label>
                     <Slider
                       min={0}
                       max={2}
                       step={0.1}
                       value={[temperature]}
-                      onValueChange={([value]) => updateSettings({ temperature: value })}
+                      onValueChange={([value]) =>
+                        updateSettings({ temperature: value })
+                      }
                       className="mt-2"
                     />
                   </div>
@@ -165,12 +309,19 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                   id="systemPrompt"
                   rows={4}
                   value={systemPrompt}
-                  onChange={(e) => updateSettings({ systemPrompt: e.target.value })}
+                  onChange={(e) =>
+                    updateSettings({ systemPrompt: e.target.value })
+                  }
                   placeholder="设定 AI 的行为和风格..."
                   className="border-hex-blue/20 focus:border-hex-cyan/50 resize-none"
                 />
               </section>
+            </div>
+          </TabsContent>
 
+          {/* 高级 */}
+          <TabsContent value="advanced" className="px-6 pb-6">
+            <div className="flex flex-col gap-5 pt-2 max-h-[55vh] overflow-y-auto pr-1">
               {/* MCP 服务器 */}
               <section className="flex flex-col gap-3">
                 <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
@@ -179,12 +330,15 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                 <Separator className="bg-hex-blue/20" />
                 <McpSection />
               </section>
-            </div>
-          </TabsContent>
 
-          <TabsContent value="scheduler">
-            <div className="py-2">
-              <SchedulerPanel />
+              {/* 定时任务 */}
+              <section className="flex flex-col gap-3">
+                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
+                  定时任务
+                </h3>
+                <Separator className="bg-hex-blue/20" />
+                <SchedulerPanel />
+              </section>
             </div>
           </TabsContent>
         </Tabs>
@@ -194,7 +348,14 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
 }
 
 function McpSection() {
-  const { servers, connectedTools, addServer, removeServer, connect, disconnect } = useMcpStore()
+  const {
+    servers,
+    connectedTools,
+    addServer,
+    removeServer,
+    connect,
+    disconnect,
+  } = useMcpStore()
   const [name, setName] = useState("")
   const [command, setCommand] = useState("")
   const [args, setArgs] = useState("")
@@ -247,7 +408,9 @@ function McpSection() {
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <span
                 className={`inline-block h-2 w-2 rounded-full shrink-0 ${
-                  isConnected ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]" : "bg-muted-foreground/40"
+                  isConnected
+                    ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]"
+                    : "bg-muted-foreground/40"
                 }`}
               />
               <div className="flex-1 min-w-0">
@@ -256,7 +419,9 @@ function McpSection() {
                   {server.command} {server.args.join(" ")}
                 </div>
                 {isConnected && (
-                  <div className="text-xs text-hex-cyan/70">{toolCount} 个工具</div>
+                  <div className="text-xs text-hex-cyan/70">
+                    {toolCount} 个工具
+                  </div>
                 )}
               </div>
             </div>
@@ -265,10 +430,18 @@ function McpSection() {
                 size="sm"
                 variant={isConnected ? "outline" : "default"}
                 disabled={connecting === server.name}
-                onClick={() => isConnected ? handleDisconnect(server.name) : handleConnect(server.name)}
+                onClick={() =>
+                  isConnected
+                    ? handleDisconnect(server.name)
+                    : handleConnect(server.name)
+                }
                 className={`text-xs ${!isConnected ? "bg-hex-blue/80 hover:bg-hex-blue text-white" : "border-hex-blue/30"}`}
               >
-                {connecting === server.name ? "..." : isConnected ? "断开" : "连接"}
+                {connecting === server.name
+                  ? "..."
+                  : isConnected
+                    ? "断开"
+                    : "连接"}
               </Button>
               <Button
                 size="sm"
