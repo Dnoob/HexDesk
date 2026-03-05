@@ -14,6 +14,7 @@ export interface Conversation {
 }
 
 export interface Settings {
+  provider: string
   apiKey: string
   model: string
   baseUrl: string

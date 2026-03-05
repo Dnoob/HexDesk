@@ -1,7 +1,7 @@
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
-use crate::llm::minimax;
+use crate::llm::openai_compatible;
 use crate::llm::provider::ChatMessage;
 use crate::state::AppState;
 
@@ -26,7 +26,7 @@ pub async fn send_message(
         return Err("API Key is not configured. Please set it in Settings.".to_string());
     }
 
-    minimax::stream_chat(&settings, messages, |content| {
+    openai_compatible::stream_chat(&settings, messages, |content| {
         let _ = app.emit("chat:chunk", ChunkPayload { content });
     })
     .await?;

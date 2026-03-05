@@ -10,8 +10,23 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+const providerPresets: Record<string, { baseUrl: string; model: string }> = {
+  minimax: { baseUrl: "https://api.minimax.chat/v1", model: "MiniMax-Text-01" },
+  openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
+  deepseek: { baseUrl: "https://api.deepseek.com", model: "deepseek-chat" },
+}
+
 export default function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const { apiKey, model, baseUrl, maxTokens, temperature, updateSettings } = useSettingsStore()
+  const { provider, apiKey, model, baseUrl, maxTokens, temperature, updateSettings } = useSettingsStore()
+
+  const handleProviderChange = (value: string) => {
+    const preset = providerPresets[value]
+    if (preset) {
+      updateSettings({ provider: value, baseUrl: preset.baseUrl, model: preset.model })
+    } else {
+      updateSettings({ provider: value })
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -21,6 +36,21 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
         </DialogHeader>
 
         <div className="flex flex-col gap-4 py-2">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="provider">Provider</Label>
+            <Select value={provider} onValueChange={handleProviderChange}>
+              <SelectTrigger id="provider">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="minimax">MiniMax</SelectItem>
+                <SelectItem value="openai">OpenAI</SelectItem>
+                <SelectItem value="deepseek">DeepSeek</SelectItem>
+                <SelectItem value="custom">Custom</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="apiKey">API Key</Label>
             <Input
@@ -34,14 +64,11 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="model">Model</Label>
-            <Select value={model} onValueChange={(value) => updateSettings({ model: value })}>
-              <SelectTrigger id="model">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="MiniMax-Text-01">MiniMax-Text-01</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input
+              id="model"
+              value={model}
+              onChange={(e) => updateSettings({ model: e.target.value })}
+            />
           </div>
 
           <div className="flex flex-col gap-2">

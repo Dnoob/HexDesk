@@ -1,2 +1,2 @@
-pub mod minimax;
+pub mod openai_compatible;
 pub mod provider;

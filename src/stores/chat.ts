@@ -204,6 +204,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       await invoke("save_settings", {
         settings: {
+          provider: settings.provider,
           apiKey: settings.apiKey,
           model: settings.model,
           baseUrl: settings.baseUrl,

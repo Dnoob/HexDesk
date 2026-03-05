@@ -9,6 +9,7 @@ interface SettingsState extends Settings {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
+      provider: "minimax",
       apiKey: "",
       model: "MiniMax-Text-01",
       baseUrl: "https://api.minimax.chat/v1",

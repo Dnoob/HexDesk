@@ -6,6 +6,7 @@ use tokio::sync::oneshot;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
+    pub provider: String,
     pub api_key: String,
     pub model: String,
     pub base_url: String,
@@ -16,6 +17,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            provider: "minimax".to_string(),
             api_key: String::new(),
             model: "MiniMax-Text-01".to_string(),
             base_url: "https://api.minimax.chat/v1".to_string(),
