@@ -11,7 +11,7 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       provider: "minimax",
       apiKey: "",
-      model: "MiniMax-Text-01",
+      model: "MiniMax-M2.5",
       baseUrl: "https://api.minimax.chat/v1",
       maxTokens: 4096,
       temperature: 0.7,
