@@ -4,6 +4,8 @@ import { User, Bot } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeHighlight from "rehype-highlight"
+import { ToolCallCard } from "./ToolCallCard"
+import { AgentPlanCard, parsePlan, stripPlanJson } from "./AgentPlanCard"
 
 interface MessageItemProps {
   message: Message
@@ -21,7 +23,9 @@ function stripThinkTags(content: string): string {
 
 export function MessageItem({ message, isLastAssistant, isStreaming }: MessageItemProps) {
   const isUser = message.role === "user"
-  const displayContent = isUser ? message.content : stripThinkTags(message.content)
+  const strippedContent = isUser ? message.content : stripThinkTags(message.content)
+  const planSteps = !isUser ? parsePlan(strippedContent) : null
+  const displayContent = planSteps ? stripPlanJson(strippedContent) : strippedContent
   const showThinking = !isUser && isLastAssistant && isStreaming && !displayContent
   const showCursor = !isUser && isLastAssistant && isStreaming && !!displayContent
 
@@ -59,6 +63,14 @@ export function MessageItem({ message, isLastAssistant, isStreaming }: MessageIt
           <span className="text-muted-foreground">思考中...</span>
         ) : (
           <>
+            {message.toolCalls && message.toolCalls.length > 0 && (
+              <div className="mb-2 space-y-1.5">
+                {message.toolCalls.map((tc) => (
+                  <ToolCallCard key={tc.id} toolCall={tc} />
+                ))}
+              </div>
+            )}
+            {planSteps && <AgentPlanCard steps={planSteps} />}
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
               {displayContent}
             </ReactMarkdown>

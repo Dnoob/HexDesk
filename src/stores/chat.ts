@@ -1,8 +1,9 @@
 import { create } from "zustand"
 import { invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
-import type { Conversation, Message, ChatMessage, ChatContentPart, ChunkPayload } from "@/types"
+import type { Conversation, Message, ChatMessage, ChatContentPart, ChunkPayload, ToolCallInfo } from "@/types"
 import { useSettingsStore } from "./settings"
+import { useAgentStore } from "./agent"
 import {
   dbGetConversations,
   dbCreateConversation,
@@ -28,6 +29,8 @@ interface ChatState {
   appendToLastMessage: (content: string) => void
   sendMessage: (content: string, images?: string[]) => Promise<void>
   stopStreaming: () => void
+  addToolCall: (tc: { id: string; function: { name: string; arguments: string } }) => void
+  updateToolCallResult: (toolCallId: string, result: string) => void
 }
 
 function generateId(): string {
@@ -193,8 +196,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     // Build messages array for API (exclude the empty assistant placeholder)
     const allMessages = get().messages
     const systemPrompt = useSettingsStore.getState().systemPrompt
+    const agentPrompt = useAgentStore.getState().isAgentMode
+      ? "\n\n当用户给出复杂任务时，你应该：\n1. 先分析任务，制定一个分步执行计划\n2. 使用以下 JSON 格式输出计划：\n```json\n{\"plan\": [{\"step\": 1, \"description\": \"步骤描述\"}, ...]}\n```\n3. 然后逐步执行计划中的每个步骤，使用可用的工具完成\n4. 每完成一个步骤，报告进度"
+      : ""
     const apiMessages: ChatMessage[] = [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: systemPrompt + agentPrompt },
       ...allMessages.slice(0, -1).map((m) => ({
         role: m.role,
         content: buildChatMessageContent(m.content, m.images),
@@ -228,6 +234,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Done event received
     })
 
+    const unlistenToolCall = await listen<{ id: string; function: { name: string; arguments: string } }>(
+      "chat:tool_call",
+      (event) => {
+        get().addToolCall(event.payload)
+      }
+    )
+
+    const unlistenToolResult = await listen<{ tool_call_id: string; result: string }>(
+      "chat:tool_result",
+      (event) => {
+        get().updateToolCallResult(event.payload.tool_call_id, event.payload.result)
+      }
+    )
+
     try {
       await invoke("send_message", { messages: apiMessages })
     } catch (error) {
@@ -244,6 +264,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ isStreaming: false })
       unlistenChunk()
       unlistenDone()
+      unlistenToolCall()
+      unlistenToolResult()
 
       // Save final assistant message to DB
       const convId = get().currentConversationId
@@ -259,5 +281,41 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   stopStreaming: () => {
     set({ isStreaming: false })
+  },
+
+  addToolCall: (tc) => {
+    set((state) => {
+      const messages = [...state.messages]
+      const last = messages[messages.length - 1]
+      if (last?.role === "assistant") {
+        const newToolCall: ToolCallInfo = {
+          id: tc.id,
+          name: tc.function.name,
+          arguments: tc.function.arguments,
+          status: "calling",
+        }
+        messages[messages.length - 1] = {
+          ...last,
+          toolCalls: [...(last.toolCalls ?? []), newToolCall],
+        }
+      }
+      return { messages }
+    })
+  },
+
+  updateToolCallResult: (toolCallId, result) => {
+    set((state) => {
+      const messages = [...state.messages]
+      const last = messages[messages.length - 1]
+      if (last?.role === "assistant" && last.toolCalls) {
+        messages[messages.length - 1] = {
+          ...last,
+          toolCalls: last.toolCalls.map((tc) =>
+            tc.id === toolCallId ? { ...tc, result, status: "done" as const } : tc
+          ),
+        }
+      }
+      return { messages }
+    })
   },
 }))

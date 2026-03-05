@@ -1,8 +1,17 @@
+export interface ToolCallInfo {
+  id: string
+  name: string
+  arguments: string
+  result?: string
+  status: "calling" | "done" | "error"
+}
+
 export interface Message {
   id: string
   role: "user" | "assistant"
   content: string
   images?: string[]
+  toolCalls?: ToolCallInfo[]
   createdAt: number
 }
 
@@ -88,4 +97,15 @@ export interface McpTool {
   name: string
   description?: string
   inputSchema?: Record<string, unknown>
+}
+
+export interface AgentStep {
+  id: string
+  description: string
+  status: "pending" | "running" | "done" | "error"
+  result?: string
+}
+
+export interface AgentPlan {
+  steps: AgentStep[]
 }
