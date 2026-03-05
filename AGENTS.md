@@ -18,7 +18,7 @@
 | 数据存储 | SQLite (tauri-plugin-sql) |
 | 构建工具 | Vite |
 | 包管理 | pnpm |
-| LLM | MiniMax |
+| LLM | MiniMax / OpenAI / DeepSeek（多 Provider） |
 
 ## 项目结构
 
@@ -41,15 +41,25 @@ HexDesk/
 │       ├── state.rs          # 全局状态管理
 │       ├── commands/          # IPC 命令（按功能分模块）
 │       │   ├── mod.rs
-│       │   ├── chat.rs       # 对话相关
+│       │   ├── chat.rs       # 对话（含 Function Calling 循环）
 │       │   ├── files.rs      # 文件操作
 │       │   ├── shell.rs      # Shell 执行
-│       │   └── settings.rs   # 设置
+│       │   ├── settings.rs   # 设置
+│       │   ├── confirmation.rs # 操作确认（oneshot channel）
+│       │   ├── documents.rs  # 文档生成（Word/Excel/PDF）
+│       │   ├── mcp.rs        # MCP 服务器管理
+│       │   └── scheduler.rs  # 定时任务
 │       ├── llm/              # LLM 调用
 │       │   ├── mod.rs
-│       │   ├── provider.rs   # Provider trait
-│       │   └── minimax.rs    # MiniMax 实现
+│       │   ├── provider.rs   # Provider trait + ChatMessage
+│       │   └── openai_compatible.rs  # OpenAI 兼容 API（统一所有 Provider）
 │       ├── tools/            # Agent 工具定义与执行
+│       │   ├── mod.rs        # 工具定义（5 个内置工具）
+│       │   └── executor.rs   # 工具执行器（含确认机制）
+│       ├── mcp/              # MCP 客户端
+│       │   ├── mod.rs
+│       │   ├── client.rs     # stdio JSON-RPC 通信
+│       │   └── types.rs      # MCP 类型定义
 │       └── db/               # 数据库
 │           ├── mod.rs
 │           └── migrations/   # SQL 迁移文件
@@ -61,14 +71,26 @@ HexDesk/
 │   │   └── providers.tsx     # Provider 包装
 │   ├── components/           # UI 组件
 │   │   ├── chat/             # 对话组件
-│   │   ├── sidebar/          # 侧边栏
-│   │   ├── settings/         # 设置页
+│   │   │   ├── ChatArea.tsx  # 对话区域 + 欢迎页
+│   │   │   ├── ChatInput.tsx # 输入框（图片/Skills/Agent 模式）
+│   │   │   ├── MessageList.tsx
+│   │   │   ├── MessageItem.tsx # 消息渲染（Markdown + think 过滤）
+│   │   │   ├── ToolCallCard.tsx # 工具调用状态卡片
+│   │   │   ├── AgentPlanCard.tsx # Agent 执行计划卡片
+│   │   │   ├── ConfirmationCard.tsx # 操作确认弹窗
+│   │   │   └── SkillsPanel.tsx # Skills 面板
+│   │   ├── sidebar/          # 侧边栏（按日期分组）
+│   │   ├── settings/         # 设置页（Tabs: 通用 + 定时任务）
 │   │   └── ui/               # shadcn/ui 基础组件
-│   ├── features/             # 业务功能模块
-│   │   ├── chat/             # 对话功能（逻辑 + hooks）
-│   │   ├── agent/            # Agent 执行
-│   │   └── files/            # 文件管理
 │   ├── stores/               # Zustand stores
+│   │   ├── chat.ts           # 对话 + SQLite 持久化
+│   │   ├── settings.ts       # 设置（persist）
+│   │   ├── ui.ts             # UI 状态
+│   │   ├── confirmation.ts   # 操作确认
+│   │   ├── skills.ts         # Skills 插件
+│   │   ├── mcp.ts            # MCP 服务器
+│   │   ├── scheduler.ts      # 定时任务
+│   │   └── agent.ts          # Agent 模式
 │   ├── hooks/                # 通用 hooks
 │   ├── lib/                  # 工具函数
 │   │   ├── utils.ts
@@ -136,26 +158,32 @@ pnpm tauri build # 生产构建
 
 ## 功能路线
 
-### v1 — 核心体验
-- 对话界面（流式输出）
-- 文件操作（读/写/搜索/列目录）
-- Shell 命令执行
-- 操作确认机制
-- 图片识别（多模态）
-- 会话管理（创建/切换/删除）
-- 设置页面（API Key、模型选择）
+### v1 — 核心体验 ✅
+- ✅ 对话界面（流式输出）
+- ✅ 文件操作（读/写/搜索/列目录）
+- ✅ Shell 命令执行
+- ✅ 操作确认机制
+- ✅ 图片识别（多模态）
+- ✅ 会话管理（创建/切换/删除）
+- ✅ 设置页面（API Key、模型选择）
 
-### v2 — 进阶功能
-- 文档生成（Word/Excel/PDF）
-- 定时任务
-- Skills/插件系统
-- MCP 集成
-- 多 LLM Provider 支持
+### v2 — 进阶功能 ✅
+- ✅ 文档生成（Word/Excel/PDF）
+- ✅ 定时任务
+- ✅ Skills/插件系统
+- ✅ MCP 集成
+- ✅ 多 LLM Provider 支持
 
-### v3 — 高级功能
-- 虚拟机沙盒
-- 语音交互
-- Agent 多步规划与自主执行
+### v3 — 高级功能（进行中）
+- ✅ Agent 多步规划与自主执行（prompt 驱动 plan-then-execute）
+- 🔲 虚拟机沙盒（待深度讨论方案）
+
+## CI/CD
+
+- GitHub Actions：`.github/workflows/build.yml`
+- 触发方式：推送 `v*` tag 或手动 `workflow_dispatch`
+- 构建平台：Windows (x86_64) + macOS (aarch64)
+- 使用 `tauri-apps/tauri-action` 自动构建并创建 GitHub Release（Draft）
 
 ## 多 Agent 协作规则
 
