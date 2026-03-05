@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Mutex;
+use tokio::sync::oneshot;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,4 +27,5 @@ impl Default for Settings {
 
 pub struct AppState {
     pub settings: Mutex<Settings>,
+    pub pending_confirmations: Mutex<HashMap<String, oneshot::Sender<bool>>>,
 }

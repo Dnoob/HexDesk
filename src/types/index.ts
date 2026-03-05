@@ -2,6 +2,7 @@ export interface Message {
   id: string
   role: "user" | "assistant"
   content: string
+  images?: string[]
   createdAt: number
 }
 
@@ -20,11 +21,27 @@ export interface Settings {
   temperature: number
 }
 
+export type ChatMessageContent = string | ChatContentPart[]
+
+export interface ChatContentPart {
+  type: "text" | "image_url"
+  text?: string
+  image_url?: { url: string }
+}
+
 export interface ChatMessage {
   role: string
-  content: string
+  content: ChatMessageContent
 }
 
 export interface ChunkPayload {
   content: string
+}
+
+export interface ConfirmationRequest {
+  id: string
+  actionType: "file_read" | "file_write" | "shell_execute" | "file_delete"
+  title: string
+  description: string
+  details?: string
 }
