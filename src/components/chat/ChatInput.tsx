@@ -1,10 +1,12 @@
 import { useState, useRef, type KeyboardEvent, type ClipboardEvent } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { SendHorizontal, Square, ImagePlus, X, Zap, Bot } from "lucide-react"
+import { SendHorizontal, Square, ImagePlus, X, Zap, Bot, FolderOpen } from "lucide-react"
 import { useChatStore } from "@/stores/chat"
 import { useAgentStore } from "@/stores/agent"
+import { useSettingsStore } from "@/stores/settings"
 import { SkillsPanel } from "./SkillsPanel"
+import { open } from "@tauri-apps/plugin-dialog"
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -25,6 +27,15 @@ export function ChatInput() {
   const stopStreaming = useChatStore((s) => s.stopStreaming)
   const isAgentMode = useAgentStore((s) => s.isAgentMode)
   const toggleAgentMode = useAgentStore((s) => s.toggleAgentMode)
+  const workingDirectory = useSettingsStore((s) => s.workingDirectory)
+  const updateSettings = useSettingsStore((s) => s.updateSettings)
+
+  async function handleSelectFolder() {
+    const selected = await open({ directory: true, multiple: false })
+    if (selected) {
+      updateSettings({ workingDirectory: selected as string })
+    }
+  }
 
   const canSend = (content.trim().length > 0 || images.length > 0) && !isStreaming
 
@@ -76,6 +87,32 @@ export function ChatInput() {
 
   return (
     <div className="border-t p-4">
+      {/* Folder selector tag */}
+      <div className="mb-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleSelectFolder}
+          className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <FolderOpen className="size-3.5" />
+          {workingDirectory ? (
+            <span className="max-w-[300px] truncate" title={workingDirectory}>
+              {workingDirectory}
+            </span>
+          ) : (
+            <span>选择工作目录</span>
+          )}
+        </button>
+        {workingDirectory && (
+          <button
+            type="button"
+            onClick={() => updateSettings({ workingDirectory: "" })}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X className="size-3.5" />
+          </button>
+        )}
+      </div>
       {images.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2">
           {images.map((img, i) => (

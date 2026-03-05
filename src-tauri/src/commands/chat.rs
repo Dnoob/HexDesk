@@ -46,6 +46,7 @@ pub async fn send_message(
         return Err("API Key is not configured. Please set it in Settings.".to_string());
     }
 
+    let working_dir = settings.working_directory.clone();
     let tool_defs = tools::get_tool_definitions();
     let mut conversation = messages;
 
@@ -80,7 +81,7 @@ pub async fn send_message(
 
             let args: Value =
                 serde_json::from_str(&tc.function.arguments).unwrap_or_default();
-            let result = tools::executor::execute_tool(&app, &tc.function.name, args)
+            let result = tools::executor::execute_tool(&app, &tc.function.name, args, &working_dir)
                 .await
                 .unwrap_or_else(|e| format!("Error: {e}"));
 

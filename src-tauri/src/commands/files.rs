@@ -22,6 +22,37 @@ fn validate_path(path: &str) -> Result<PathBuf, String> {
     Ok(canonical)
 }
 
+pub fn validate_within_working_dir(path: &str, working_dir: &str) -> Result<PathBuf, String> {
+    if working_dir.is_empty() {
+        return validate_path(path);
+    }
+
+    let working_canonical = std::fs::canonicalize(working_dir)
+        .map_err(|e| format!("Invalid working directory '{}': {}", working_dir, e))?;
+
+    // For new files, validate parent directory
+    let target = Path::new(path);
+    let canonical = if target.exists() {
+        std::fs::canonicalize(path)
+            .map_err(|e| format!("Invalid path '{}': {}", path, e))?
+    } else {
+        let parent = target.parent()
+            .ok_or_else(|| format!("Invalid path '{}': no parent directory", path))?;
+        let parent_canonical = std::fs::canonicalize(parent)
+            .map_err(|e| format!("Invalid parent directory '{}': {}", parent.display(), e))?;
+        parent_canonical.join(target.file_name().unwrap_or_default())
+    };
+
+    if !canonical.starts_with(&working_canonical) {
+        return Err(format!(
+            "Access denied: '{}' is outside the working directory '{}'",
+            path, working_dir
+        ));
+    }
+
+    Ok(canonical)
+}
+
 #[tauri::command]
 pub fn read_file(path: String) -> Result<String, String> {
     let canonical = validate_path(&path)?;

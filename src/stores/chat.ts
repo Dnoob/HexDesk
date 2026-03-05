@@ -195,12 +195,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     // Build messages array for API (exclude the empty assistant placeholder)
     const allMessages = get().messages
-    const systemPrompt = useSettingsStore.getState().systemPrompt
+    const { systemPrompt, workingDirectory } = useSettingsStore.getState()
+    const workingDirPrompt = workingDirectory
+      ? `\n\n当前工作目录: ${workingDirectory}\n所有文件操作和命令执行都在此目录下进行。使用相对路径即可，不要使用绝对路径。`
+      : ""
     const agentPrompt = useAgentStore.getState().isAgentMode
       ? "\n\n当用户给出复杂任务时，你应该：\n1. 先分析任务，制定一个分步执行计划\n2. 使用以下 JSON 格式输出计划：\n```json\n{\"plan\": [{\"step\": 1, \"description\": \"步骤描述\"}, ...]}\n```\n3. 然后逐步执行计划中的每个步骤，使用可用的工具完成\n4. 每完成一个步骤，报告进度"
       : ""
     const apiMessages: ChatMessage[] = [
-      { role: "system", content: systemPrompt + agentPrompt },
+      { role: "system", content: systemPrompt + workingDirPrompt + agentPrompt },
       ...allMessages.slice(0, -1).map((m) => ({
         role: m.role,
         content: buildChatMessageContent(m.content, m.images),
@@ -219,6 +222,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           maxTokens: settings.maxTokens,
           temperature: settings.temperature,
           systemPrompt: settings.systemPrompt,
+          workingDirectory: settings.workingDirectory,
         },
       })
     } catch {

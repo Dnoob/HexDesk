@@ -30,6 +30,7 @@ export interface Settings {
   maxTokens: number
   temperature: number
   systemPrompt: string
+  workingDirectory: string
 }
 
 export type ChatMessageContent = string | ChatContentPart[]
