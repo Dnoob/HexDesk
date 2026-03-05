@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { Plus, Search, Trash2, PanelLeftClose, Settings, MessageSquare } from "lucide-react"
+import { Plus, Search, Trash2, PanelLeftClose, Settings, MessageSquare, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -30,7 +30,7 @@ function groupByDate(conversations: { id: string; title: string; updatedAt: numb
 export default function Sidebar() {
   const { conversations, currentConversationId, addConversation, selectConversation, deleteConversation } =
     useChatStore()
-  const { toggleSidebar } = useUIStore()
+  const { toggleSidebar, activePage, setActivePage } = useUIStore()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [search, setSearch] = useState("")
 
@@ -54,7 +54,7 @@ export default function Sidebar() {
                 variant="ghost"
                 size="icon-sm"
                 className="text-hex-cyan hover:bg-hex-glow"
-                onClick={addConversation}
+                onClick={() => { addConversation(); setActivePage("chat") }}
               >
                 <Plus className="size-4" />
               </Button>
@@ -64,8 +64,34 @@ export default function Sidebar() {
         </TooltipProvider>
       </div>
 
+      {/* Navigation Tabs */}
+      <div className="flex gap-1 px-3 pb-2">
+        <button
+          onClick={() => setActivePage("chat")}
+          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium transition-colors ${
+            activePage === "chat"
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-muted-foreground hover:bg-sidebar-accent/40"
+          }`}
+        >
+          <MessageSquare className="size-3.5" />
+          对话
+        </button>
+        <button
+          onClick={() => setActivePage("skills")}
+          className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-medium transition-colors ${
+            activePage === "skills"
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-muted-foreground hover:bg-sidebar-accent/40"
+          }`}
+        >
+          <Zap className="size-3.5" />
+          技能
+        </button>
+      </div>
+
       {/* Search */}
-      <div className="px-3 pb-2">
+      {activePage === "chat" && <div className="px-3 pb-2">
         <div className="flex items-center gap-2 rounded-md bg-sidebar-accent/40 px-2.5 py-1.5 text-sm transition-colors focus-within:bg-sidebar-accent/60">
           <Search className="size-3.5 text-muted-foreground" />
           <input
@@ -76,10 +102,10 @@ export default function Sidebar() {
             className="flex-1 bg-transparent text-sm text-sidebar-foreground placeholder:text-muted-foreground outline-none"
           />
         </div>
-      </div>
+      </div>}
 
       {/* Conversation List */}
-      <ScrollArea className="flex-1 px-2">
+      <ScrollArea className={`flex-1 px-2 ${activePage !== "chat" ? "hidden" : ""}`}>
         <div className="flex flex-col gap-0.5">
           {groups.length === 0 && (
             <div className="px-3 py-6 text-center text-xs text-muted-foreground">
@@ -101,7 +127,7 @@ export default function Sidebar() {
                         ? "border-l-2 border-l-hex-blue bg-sidebar-accent text-sidebar-accent-foreground"
                         : "border-l-2 border-l-transparent hover:bg-sidebar-accent/40 text-sidebar-foreground"
                     }`}
-                    onClick={() => selectConversation(conv.id)}
+                    onClick={() => { selectConversation(conv.id); setActivePage("chat") }}
                   >
                     <MessageSquare className={`size-3.5 flex-shrink-0 ${isActive ? "text-hex-cyan" : "opacity-40"}`} />
                     <span className="flex-1 truncate">{conv.title}</span>

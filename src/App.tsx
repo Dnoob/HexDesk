@@ -5,12 +5,14 @@ import { useChatStore } from "@/stores/chat"
 import { useConfirmationStore } from "@/stores/confirmation"
 import Sidebar from "@/components/sidebar/Sidebar"
 import ChatArea from "@/components/chat/ChatArea"
+import SkillsMarket from "@/components/skills/SkillsMarket"
 import { ConfirmationCard } from "@/components/chat/ConfirmationCard"
 import "./App.css"
 
 function App() {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen)
   const theme = useUIStore((s) => s.theme)
+  const activePage = useUIStore((s) => s.activePage)
 
   useEffect(() => {
     void useChatStore.getState().init()
@@ -32,7 +34,7 @@ function App() {
     <TooltipProvider>
       <div className="flex h-screen overflow-hidden">
         {sidebarOpen && <Sidebar />}
-        <ChatArea />
+        {activePage === "chat" ? <ChatArea /> : <SkillsMarket />}
       </div>
       <ConfirmationCard />
     </TooltipProvider>

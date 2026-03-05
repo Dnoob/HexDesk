@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event"
 import type { Conversation, Message, ChatMessage, ChatContentPart, ChunkPayload, ToolCallInfo } from "@/types"
 import { useSettingsStore } from "./settings"
 import { useAgentStore } from "./agent"
+import { useSkillsStore } from "./skills"
 import {
   dbGetConversations,
   dbCreateConversation,
@@ -252,8 +253,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
     )
 
+    // Build activated skills data for backend
+    const activatedSkills = useSkillsStore.getState().getActivatedSkills().map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      instruction: s.instruction,
+    }))
+
     try {
-      await invoke("send_message", { messages: apiMessages })
+      await invoke("send_message", {
+        messages: apiMessages,
+        activatedSkills: activatedSkills.length > 0 ? activatedSkills : null,
+      })
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       const currentMessages = get().messages

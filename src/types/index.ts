@@ -69,22 +69,26 @@ export interface ScheduledTask {
   createdAt: number
 }
 
-export interface SkillVariable {
-  name: string
-  label: string
-  type: "text" | "select"
-  options?: string[]
-  placeholder?: string
-}
+export type SkillCategory =
+  | "writing"
+  | "development"
+  | "efficiency"
+  | "translation"
+  | "creativity"
+  | "data"
+  | "design"
 
 export interface Skill {
   id: string
   name: string
   description: string
   icon: string
-  prompt: string
-  variables?: SkillVariable[]
+  category: SkillCategory
+  instruction: string
+  author?: string
+  tags?: string[]
   builtin?: boolean
+  demoPrompt?: string
 }
 
 export interface McpServerConfig {

@@ -2,12 +2,14 @@ use serde_json::Value;
 use tauri::AppHandle;
 
 use crate::commands::{confirmation, files, shell};
+use crate::tools::ActivatedSkill;
 
 pub async fn execute_tool(
     app: &AppHandle,
     tool_name: &str,
     arguments: Value,
     working_dir: &str,
+    activated_skills: &[ActivatedSkill],
 ) -> Result<String, String> {
     match tool_name {
         "read_file" => {
@@ -75,6 +77,17 @@ pub async fn execute_tool(
             Ok(format!(
                 "exit code: {}\nstdout:\n{}\nstderr:\n{}",
                 output.exit_code, output.stdout, output.stderr
+            ))
+        }
+        "activate_skill" => {
+            let skill_name = get_str(&arguments, "skill_name")?;
+            let skill = activated_skills
+                .iter()
+                .find(|s| s.name == skill_name)
+                .ok_or_else(|| format!("未找到技能: {skill_name}"))?;
+            Ok(format!(
+                "已激活技能「{}」。请严格按照以下指令执行用户的请求：\n\n{}",
+                skill.name, skill.instruction
             ))
         }
         _ => Err(format!("Unknown tool: {tool_name}")),

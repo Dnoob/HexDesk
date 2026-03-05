@@ -6,6 +6,7 @@ use crate::llm::openai_compatible::{self, ToolCall};
 use crate::llm::provider::ChatMessage;
 use crate::state::AppState;
 use crate::tools;
+use crate::tools::ActivatedSkill;
 
 #[derive(Clone, Serialize)]
 struct ChunkPayload {
@@ -34,6 +35,7 @@ const MAX_TOOL_ROUNDS: usize = 10;
 pub async fn send_message(
     app: AppHandle,
     messages: Vec<ChatMessage>,
+    activated_skills: Option<Vec<ActivatedSkill>>,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let settings = state
@@ -47,7 +49,8 @@ pub async fn send_message(
     }
 
     let working_dir = settings.working_directory.clone();
-    let tool_defs = tools::get_tool_definitions();
+    let skills = activated_skills.unwrap_or_default();
+    let tool_defs = tools::get_tool_definitions(&skills);
     let mut conversation = messages;
 
     for _ in 0..MAX_TOOL_ROUNDS {
@@ -81,7 +84,7 @@ pub async fn send_message(
 
             let args: Value =
                 serde_json::from_str(&tc.function.arguments).unwrap_or_default();
-            let result = tools::executor::execute_tool(&app, &tc.function.name, args, &working_dir)
+            let result = tools::executor::execute_tool(&app, &tc.function.name, args, &working_dir, &skills)
                 .await
                 .unwrap_or_else(|e| format!("Error: {e}"));
 

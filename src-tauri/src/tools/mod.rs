@@ -1,6 +1,6 @@
 pub mod executor;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 #[derive(Clone, Serialize)]
@@ -17,8 +17,16 @@ pub struct FunctionDef {
     pub parameters: Value,
 }
 
-pub fn get_tool_definitions() -> Vec<ToolDefinition> {
-    vec![
+#[derive(Clone, Deserialize)]
+pub struct ActivatedSkill {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub instruction: String,
+}
+
+pub fn get_tool_definitions(activated_skills: &[ActivatedSkill]) -> Vec<ToolDefinition> {
+    let mut tools = vec![
         tool("read_file", "读取文件内容", json!({
             "type": "object",
             "properties": {
@@ -57,7 +65,30 @@ pub fn get_tool_definitions() -> Vec<ToolDefinition> {
             },
             "required": ["command"]
         })),
-    ]
+    ];
+
+    if !activated_skills.is_empty() {
+        let skill_list: String = activated_skills
+            .iter()
+            .map(|s| format!("- {}: {}", s.name, s.description))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let description = format!(
+            "当用户的请求匹配以下某个技能时，调用此工具激活该技能以获取详细指令。仅在明确匹配时调用，不确定时不要调用。\n\n可用技能:\n{}",
+            skill_list
+        );
+
+        tools.push(tool("activate_skill", &description, json!({
+            "type": "object",
+            "properties": {
+                "skill_name": {"type": "string", "description": "要激活的技能名称，必须与可用技能列表中的名称完全匹配"}
+            },
+            "required": ["skill_name"]
+        })));
+    }
+
+    tools
 }
 
 fn tool(name: &str, desc: &str, params: Value) -> ToolDefinition {

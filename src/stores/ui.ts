@@ -2,12 +2,15 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
 type Theme = "dark" | "light" | "system"
+type Page = "chat" | "skills"
 
 interface UIState {
   sidebarOpen: boolean
   theme: Theme
+  activePage: Page
   toggleSidebar: () => void
   setTheme: (theme: Theme) => void
+  setActivePage: (page: Page) => void
 }
 
 function getSystemPrefersDark(): boolean {
@@ -24,11 +27,13 @@ export const useUIStore = create<UIState>()(
     (set) => ({
       sidebarOpen: true,
       theme: "dark",
+      activePage: "chat",
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
       setTheme: (theme) => {
         applyTheme(theme)
         set({ theme })
       },
+      setActivePage: (page) => set({ activePage: page }),
     }),
     {
       name: "hexdesk-ui",

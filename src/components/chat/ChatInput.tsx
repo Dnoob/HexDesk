@@ -5,14 +5,12 @@ import {
   Square,
   Paperclip,
   X,
-  Zap,
   Bot,
   FolderOpen,
 } from "lucide-react"
 import { useChatStore } from "@/stores/chat"
 import { useAgentStore } from "@/stores/agent"
 import { useSettingsStore } from "@/stores/settings"
-import { SkillsPanel } from "./SkillsPanel"
 import { open } from "@tauri-apps/plugin-dialog"
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -27,7 +25,6 @@ function readFileAsDataUrl(file: File): Promise<string> {
 export function ChatInput() {
   const [content, setContent] = useState("")
   const [images, setImages] = useState<string[]>([])
-  const [skillsOpen, setSkillsOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const sendMessage = useChatStore((s) => s.sendMessage)
   const isStreaming = useChatStore((s) => s.isStreaming)
@@ -177,15 +174,6 @@ export function ChatInput() {
             >
               <Paperclip className="size-[18px]" />
             </button>
-            <button
-              type="button"
-              onClick={() => setSkillsOpen(true)}
-              disabled={isStreaming}
-              className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground hover:bg-accent disabled:opacity-40"
-              title="技能"
-            >
-              <Zap className="size-[18px]" />
-            </button>
           </div>
 
           {/* Right: agent toggle + send */}
@@ -226,12 +214,6 @@ export function ChatInput() {
         </div>
       </div>
 
-      {/* Hidden */}
-      <SkillsPanel
-        open={skillsOpen}
-        onOpenChange={setSkillsOpen}
-        onSend={(message) => sendMessage(message)}
-      />
       <input
         ref={fileInputRef}
         type="file"
