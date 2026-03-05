@@ -27,7 +27,21 @@ export function MessageItem({ message }: MessageItemProps) {
         }`}
       >
         {isUser ? (
-          message.content
+          <>
+            {message.content}
+            {message.images && message.images.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {message.images.map((img, i) => (
+                  <img
+                    key={i}
+                    src={img}
+                    alt={`attached ${i + 1}`}
+                    className="max-w-48 rounded-lg"
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
           <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
             {message.content}
