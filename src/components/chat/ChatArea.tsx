@@ -5,8 +5,21 @@ import { useUIStore } from "@/stores/ui"
 import { MessageList } from "./MessageList"
 import { ChatInput } from "./ChatInput"
 
+const quickPrompts = [
+  "帮我写一封工作邮件",
+  "解释一段代码的作用",
+  "总结一篇文章的要点",
+  "翻译以下内容为英语",
+]
+
 function WelcomePage() {
   const addConversation = useChatStore((s) => s.addConversation)
+  const sendMessage = useChatStore((s) => s.sendMessage)
+
+  function handleQuickPrompt(prompt: string) {
+    addConversation()
+    sendMessage(prompt)
+  }
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4">
@@ -16,6 +29,18 @@ function WelcomePage() {
       <Button onClick={addConversation} className="mt-4">
         Start a conversation
       </Button>
+      <div className="mt-2 grid grid-cols-2 gap-2 max-w-md">
+        {quickPrompts.map((prompt) => (
+          <button
+            key={prompt}
+            type="button"
+            onClick={() => handleQuickPrompt(prompt)}
+            className="rounded-lg border px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+          >
+            {prompt}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

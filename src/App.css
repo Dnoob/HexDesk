@@ -124,6 +124,15 @@
     }
 }
 
+/* Typing cursor animation */
+.typing-cursor {
+  animation: blink 1s steps(1) infinite;
+  color: currentColor;
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
 /* Markdown rendering styles */
 .markdown-body {
   line-height: 1.6;

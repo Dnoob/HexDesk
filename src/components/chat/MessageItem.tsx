@@ -7,6 +7,8 @@ import rehypeHighlight from "rehype-highlight"
 
 interface MessageItemProps {
   message: Message
+  isLastAssistant?: boolean
+  isStreaming?: boolean
 }
 
 function stripThinkTags(content: string): string {
@@ -17,9 +19,11 @@ function stripThinkTags(content: string): string {
   return result
 }
 
-export function MessageItem({ message }: MessageItemProps) {
+export function MessageItem({ message, isLastAssistant, isStreaming }: MessageItemProps) {
   const isUser = message.role === "user"
   const displayContent = isUser ? message.content : stripThinkTags(message.content)
+  const showThinking = !isUser && isLastAssistant && isStreaming && !displayContent
+  const showCursor = !isUser && isLastAssistant && isStreaming && !!displayContent
 
   return (
     <div className={`flex items-start gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
@@ -51,10 +55,15 @@ export function MessageItem({ message }: MessageItemProps) {
               </div>
             )}
           </>
+        ) : showThinking ? (
+          <span className="text-muted-foreground">思考中...</span>
         ) : (
-          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-            {displayContent}
-          </ReactMarkdown>
+          <>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+              {displayContent}
+            </ReactMarkdown>
+            {showCursor && <span className="typing-cursor">▎</span>}
+          </>
         )}
       </div>
     </div>

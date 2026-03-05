@@ -5,6 +5,7 @@ import { MessageItem } from "./MessageItem"
 
 export function MessageList() {
   const messages = useChatStore((s) => s.messages)
+  const isStreaming = useChatStore((s) => s.isStreaming)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -16,9 +17,19 @@ export function MessageList() {
   return (
     <ScrollArea className="flex-1">
       <div className="flex flex-col gap-4 p-4">
-        {messages.map((msg) => (
-          <MessageItem key={msg.id} message={msg} />
-        ))}
+        {messages.map((msg, index) => {
+          const isLastAssistant =
+            msg.role === "assistant" &&
+            index === messages.length - 1
+          return (
+            <MessageItem
+              key={msg.id}
+              message={msg}
+              isLastAssistant={isLastAssistant}
+              isStreaming={isStreaming}
+            />
+          )
+        })}
         <div ref={bottomRef} />
       </div>
     </ScrollArea>
