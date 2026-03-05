@@ -95,7 +95,7 @@ export function ChatInput() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl p-4">
+    <div className="mx-auto mt-auto w-full max-w-3xl shrink-0 p-4">
       <div className="rounded-2xl border bg-card shadow-lg">
         {/* Working directory tag */}
         {workingDirectory && (
