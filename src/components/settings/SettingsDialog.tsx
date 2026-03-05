@@ -1,10 +1,5 @@
 import { useState } from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -18,8 +13,14 @@ import {
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Sun, Moon, Monitor } from "lucide-react"
+import {
+  Palette,
+  Bot,
+  Wrench,
+  Sun,
+  Moon,
+  Monitor,
+} from "lucide-react"
 import { useSettingsStore } from "@/stores/settings"
 import { useUIStore } from "@/stores/ui"
 import { useMcpStore } from "@/stores/mcp"
@@ -30,11 +31,16 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+type Section = "appearance" | "model" | "advanced"
+
+const navItems: { key: Section; label: string; icon: typeof Palette }[] = [
+  { key: "appearance", label: "外观", icon: Palette },
+  { key: "model", label: "模型", icon: Bot },
+  { key: "advanced", label: "高级", icon: Wrench },
+]
+
 const providerPresets: Record<string, { baseUrl: string; model: string }> = {
-  minimax: {
-    baseUrl: "https://api.minimaxi.com/v1",
-    model: "MiniMax-M2.5",
-  },
+  minimax: { baseUrl: "https://api.minimaxi.com/v1", model: "MiniMax-M2.5" },
   openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
   deepseek: { baseUrl: "https://api.deepseek.com", model: "deepseek-chat" },
 }
@@ -42,13 +48,105 @@ const providerPresets: Record<string, { baseUrl: string; model: string }> = {
 const themeOptions = [
   { value: "dark" as const, label: "深色", icon: Moon, desc: "深色背景，护眼" },
   { value: "light" as const, label: "浅色", icon: Sun, desc: "浅色背景，清爽" },
-  { value: "system" as const, label: "跟随系统", icon: Monitor, desc: "自动跟随系统设置" },
+  { value: "system" as const, label: "跟随系统", icon: Monitor, desc: "自动适配" },
 ]
 
-export default function SettingsDialog({
-  open,
-  onOpenChange,
-}: SettingsDialogProps) {
+export default function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+  const [section, setSection] = useState<Section>("appearance")
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[720px] border-hex-blue/30 bg-background/95 backdrop-blur-sm p-0 gap-0 overflow-hidden">
+        <div className="flex h-[520px]">
+          {/* 左侧导航 */}
+          <nav className="flex w-[180px] shrink-0 flex-col border-r border-hex-blue/15 bg-sidebar/50 px-3 py-5">
+            <h2 className="mb-4 px-2 text-lg font-bold text-hex-cyan">设置</h2>
+            <div className="flex flex-col gap-1">
+              {navItems.map((item) => {
+                const isActive = section === item.key
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setSection(item.key)}
+                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                      isActive
+                        ? "bg-hex-blue/15 text-hex-cyan font-medium"
+                        : "text-muted-foreground hover:bg-hex-blue/8 hover:text-foreground"
+                    }`}
+                  >
+                    <item.icon className="size-4" />
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
+          </nav>
+
+          {/* 右侧内容 */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {section === "appearance" && <AppearanceSection />}
+            {section === "model" && <ModelSection />}
+            {section === "advanced" && <AdvancedSection />}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/* ── 外观 ── */
+function AppearanceSection() {
+  const theme = useUIStore((s) => s.theme)
+  const setTheme = useUIStore((s) => s.setTheme)
+
+  return (
+    <div className="flex flex-col gap-5">
+      <SectionTitle title="主题" />
+      <div className="grid grid-cols-3 gap-3">
+        {themeOptions.map((opt) => {
+          const isActive = theme === opt.value
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setTheme(opt.value)}
+              className={`relative flex flex-col items-center gap-2.5 rounded-xl border-2 p-4 transition-all ${
+                isActive
+                  ? "border-hex-cyan bg-hex-blue/15 shadow-[0_0_16px_rgba(0,200,255,0.1)]"
+                  : "border-hex-blue/20 hover:border-hex-blue/40 hover:bg-hex-blue/5"
+              }`}
+            >
+              <div
+                className={`flex size-10 items-center justify-center rounded-full ${
+                  isActive
+                    ? "bg-hex-cyan/20 text-hex-cyan"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                <opt.icon className="size-5" />
+              </div>
+              <span
+                className={`text-sm font-medium ${isActive ? "text-hex-cyan" : "text-foreground"}`}
+              >
+                {opt.label}
+              </span>
+              <span className="text-[11px] text-muted-foreground text-center leading-tight">
+                {opt.desc}
+              </span>
+              {isActive && (
+                <div className="absolute top-2 right-2 size-2 rounded-full bg-hex-cyan shadow-[0_0_6px_rgba(0,200,255,0.6)]" />
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/* ── 模型 ── */
+function ModelSection() {
   const {
     provider,
     apiKey,
@@ -60,302 +158,140 @@ export default function SettingsDialog({
     updateSettings,
   } = useSettingsStore()
 
-  const theme = useUIStore((s) => s.theme)
-  const setTheme = useUIStore((s) => s.setTheme)
-
   const handleProviderChange = (value: string) => {
     const preset = providerPresets[value]
     if (preset) {
-      updateSettings({
-        provider: value,
-        baseUrl: preset.baseUrl,
-        model: preset.model,
-      })
+      updateSettings({ provider: value, baseUrl: preset.baseUrl, model: preset.model })
     } else {
       updateSettings({ provider: value })
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[620px] border-hex-blue/30 bg-background/95 backdrop-blur-sm p-0 gap-0">
-        <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle className="text-lg font-bold text-hex-cyan">
-            设置
-          </DialogTitle>
-        </DialogHeader>
+    <div className="flex flex-col gap-5">
+      {/* 模型配置 */}
+      <SectionTitle title="模型配置" />
 
-        <Tabs defaultValue="appearance" className="flex-1">
-          <TabsList className="mx-6 w-[calc(100%-3rem)] bg-hex-blue/10 border border-hex-blue/20">
-            <TabsTrigger
-              value="appearance"
-              className="flex-1 data-[state=active]:bg-hex-blue/20 data-[state=active]:text-hex-cyan"
-            >
-              外观
-            </TabsTrigger>
-            <TabsTrigger
-              value="model"
-              className="flex-1 data-[state=active]:bg-hex-blue/20 data-[state=active]:text-hex-cyan"
-            >
-              模型
-            </TabsTrigger>
-            <TabsTrigger
-              value="advanced"
-              className="flex-1 data-[state=active]:bg-hex-blue/20 data-[state=active]:text-hex-cyan"
-            >
-              高级
-            </TabsTrigger>
-          </TabsList>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="provider" className="text-muted-foreground">服务商</Label>
+        <Select value={provider} onValueChange={handleProviderChange}>
+          <SelectTrigger id="provider" className="border-hex-blue/20 focus:border-hex-cyan/50">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="minimax">MiniMax</SelectItem>
+            <SelectItem value="openai">OpenAI</SelectItem>
+            <SelectItem value="deepseek">DeepSeek</SelectItem>
+            <SelectItem value="custom">自定义</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-          {/* 外观 */}
-          <TabsContent value="appearance" className="px-6 pb-6">
-            <div className="flex flex-col gap-5 pt-2">
-              <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
-                  主题
-                </h3>
-                <Separator className="bg-hex-blue/20" />
-                <div className="grid grid-cols-3 gap-3">
-                  {themeOptions.map((opt) => {
-                    const isActive = theme === opt.value
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setTheme(opt.value)}
-                        className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all ${
-                          isActive
-                            ? "border-hex-cyan bg-hex-blue/15 shadow-[0_0_16px_rgba(0,200,255,0.1)]"
-                            : "border-hex-blue/20 hover:border-hex-blue/40 hover:bg-hex-blue/5"
-                        }`}
-                      >
-                        <div
-                          className={`flex size-10 items-center justify-center rounded-full ${
-                            isActive
-                              ? "bg-hex-cyan/20 text-hex-cyan"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          <opt.icon className="size-5" />
-                        </div>
-                        <span
-                          className={`text-sm font-medium ${
-                            isActive ? "text-hex-cyan" : "text-foreground"
-                          }`}
-                        >
-                          {opt.label}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground text-center leading-tight">
-                          {opt.desc}
-                        </span>
-                        {isActive && (
-                          <div className="absolute top-2 right-2 size-2 rounded-full bg-hex-cyan shadow-[0_0_6px_rgba(0,200,255,0.6)]" />
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </section>
-            </div>
-          </TabsContent>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="apiKey" className="text-muted-foreground">API 密钥</Label>
+        <Input
+          id="apiKey"
+          type="password"
+          placeholder="输入你的 API 密钥"
+          value={apiKey}
+          onChange={(e) => updateSettings({ apiKey: e.target.value })}
+          className="border-hex-blue/20 focus:border-hex-cyan/50"
+        />
+      </div>
 
-          {/* 模型 */}
-          <TabsContent value="model" className="px-6 pb-6">
-            <div className="flex flex-col gap-5 pt-2 max-h-[55vh] overflow-y-auto pr-1">
-              {/* 模型配置 */}
-              <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
-                  模型配置
-                </h3>
-                <Separator className="bg-hex-blue/20" />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="model" className="text-muted-foreground">模型</Label>
+          <Input
+            id="model"
+            value={model}
+            onChange={(e) => updateSettings({ model: e.target.value })}
+            className="border-hex-blue/20 focus:border-hex-cyan/50"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="baseUrl" className="text-muted-foreground">接口地址</Label>
+          <Input
+            id="baseUrl"
+            value={baseUrl}
+            onChange={(e) => updateSettings({ baseUrl: e.target.value })}
+            className="border-hex-blue/20 focus:border-hex-cyan/50"
+          />
+        </div>
+      </div>
 
-                <div className="flex flex-col gap-2">
-                  <Label
-                    htmlFor="provider"
-                    className="text-muted-foreground"
-                  >
-                    服务商
-                  </Label>
-                  <Select
-                    value={provider}
-                    onValueChange={handleProviderChange}
-                  >
-                    <SelectTrigger
-                      id="provider"
-                      className="border-hex-blue/20 focus:border-hex-cyan/50"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="minimax">MiniMax</SelectItem>
-                      <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem value="deepseek">DeepSeek</SelectItem>
-                      <SelectItem value="custom">自定义</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+      {/* 生成参数 */}
+      <SectionTitle title="生成参数" className="mt-2" />
 
-                <div className="flex flex-col gap-2">
-                  <Label
-                    htmlFor="apiKey"
-                    className="text-muted-foreground"
-                  >
-                    API 密钥
-                  </Label>
-                  <Input
-                    id="apiKey"
-                    type="password"
-                    placeholder="输入你的 API 密钥"
-                    value={apiKey}
-                    onChange={(e) =>
-                      updateSettings({ apiKey: e.target.value })
-                    }
-                    className="border-hex-blue/20 focus:border-hex-cyan/50"
-                  />
-                </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="maxTokens" className="text-muted-foreground">最大令牌数</Label>
+          <Input
+            id="maxTokens"
+            type="number"
+            min={1}
+            max={65536}
+            value={maxTokens}
+            onChange={(e) => updateSettings({ maxTokens: Number(e.target.value) })}
+            className="border-hex-blue/20 focus:border-hex-cyan/50"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label className="text-muted-foreground">
+            随机性：<span className="text-hex-cyan font-mono">{temperature.toFixed(1)}</span>
+          </Label>
+          <Slider
+            min={0}
+            max={2}
+            step={0.1}
+            value={[temperature]}
+            onValueChange={([value]) => updateSettings({ temperature: value })}
+            className="mt-2"
+          />
+        </div>
+      </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-2">
-                    <Label
-                      htmlFor="model"
-                      className="text-muted-foreground"
-                    >
-                      模型
-                    </Label>
-                    <Input
-                      id="model"
-                      value={model}
-                      onChange={(e) =>
-                        updateSettings({ model: e.target.value })
-                      }
-                      className="border-hex-blue/20 focus:border-hex-cyan/50"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label
-                      htmlFor="baseUrl"
-                      className="text-muted-foreground"
-                    >
-                      接口地址
-                    </Label>
-                    <Input
-                      id="baseUrl"
-                      value={baseUrl}
-                      onChange={(e) =>
-                        updateSettings({ baseUrl: e.target.value })
-                      }
-                      className="border-hex-blue/20 focus:border-hex-cyan/50"
-                    />
-                  </div>
-                </div>
-              </section>
+      {/* 系统提示词 */}
+      <SectionTitle title="系统提示词" className="mt-2" />
 
-              {/* 生成参数 */}
-              <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
-                  生成参数
-                </h3>
-                <Separator className="bg-hex-blue/20" />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-2">
-                    <Label
-                      htmlFor="maxTokens"
-                      className="text-muted-foreground"
-                    >
-                      最大令牌数
-                    </Label>
-                    <Input
-                      id="maxTokens"
-                      type="number"
-                      min={1}
-                      max={65536}
-                      value={maxTokens}
-                      onChange={(e) =>
-                        updateSettings({ maxTokens: Number(e.target.value) })
-                      }
-                      className="border-hex-blue/20 focus:border-hex-cyan/50"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-muted-foreground">
-                      随机性：
-                      <span className="text-hex-cyan font-mono">
-                        {temperature.toFixed(1)}
-                      </span>
-                    </Label>
-                    <Slider
-                      min={0}
-                      max={2}
-                      step={0.1}
-                      value={[temperature]}
-                      onValueChange={([value]) =>
-                        updateSettings({ temperature: value })
-                      }
-                      className="mt-2"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              {/* 系统提示词 */}
-              <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
-                  系统提示词
-                </h3>
-                <Separator className="bg-hex-blue/20" />
-
-                <Textarea
-                  id="systemPrompt"
-                  rows={4}
-                  value={systemPrompt}
-                  onChange={(e) =>
-                    updateSettings({ systemPrompt: e.target.value })
-                  }
-                  placeholder="设定 AI 的行为和风格..."
-                  className="border-hex-blue/20 focus:border-hex-cyan/50 resize-none"
-                />
-              </section>
-            </div>
-          </TabsContent>
-
-          {/* 高级 */}
-          <TabsContent value="advanced" className="px-6 pb-6">
-            <div className="flex flex-col gap-5 pt-2 max-h-[55vh] overflow-y-auto pr-1">
-              {/* MCP 服务器 */}
-              <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
-                  MCP 服务器
-                </h3>
-                <Separator className="bg-hex-blue/20" />
-                <McpSection />
-              </section>
-
-              {/* 定时任务 */}
-              <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
-                  定时任务
-                </h3>
-                <Separator className="bg-hex-blue/20" />
-                <SchedulerPanel />
-              </section>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+      <Textarea
+        id="systemPrompt"
+        rows={4}
+        value={systemPrompt}
+        onChange={(e) => updateSettings({ systemPrompt: e.target.value })}
+        placeholder="设定 AI 的行为和风格..."
+        className="border-hex-blue/20 focus:border-hex-cyan/50 resize-none"
+      />
+    </div>
   )
 }
 
+/* ── 高级 ── */
+function AdvancedSection() {
+  return (
+    <div className="flex flex-col gap-5">
+      <SectionTitle title="MCP 服务器" />
+      <McpSection />
+
+      <SectionTitle title="定时任务" className="mt-2" />
+      <SchedulerPanel />
+    </div>
+  )
+}
+
+/* ── 区块标题 ── */
+function SectionTitle({ title, className }: { title: string; className?: string }) {
+  return (
+    <div className={className}>
+      <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">{title}</h3>
+      <Separator className="mt-2 bg-hex-blue/20" />
+    </div>
+  )
+}
+
+/* ── MCP ── */
 function McpSection() {
-  const {
-    servers,
-    connectedTools,
-    addServer,
-    removeServer,
-    connect,
-    disconnect,
-  } = useMcpStore()
+  const { servers, connectedTools, addServer, removeServer, connect, disconnect } = useMcpStore()
   const [name, setName] = useState("")
   const [command, setCommand] = useState("")
   const [args, setArgs] = useState("")
@@ -419,9 +355,7 @@ function McpSection() {
                   {server.command} {server.args.join(" ")}
                 </div>
                 {isConnected && (
-                  <div className="text-xs text-hex-cyan/70">
-                    {toolCount} 个工具
-                  </div>
+                  <div className="text-xs text-hex-cyan/70">{toolCount} 个工具</div>
                 )}
               </div>
             </div>
@@ -431,17 +365,11 @@ function McpSection() {
                 variant={isConnected ? "outline" : "default"}
                 disabled={connecting === server.name}
                 onClick={() =>
-                  isConnected
-                    ? handleDisconnect(server.name)
-                    : handleConnect(server.name)
+                  isConnected ? handleDisconnect(server.name) : handleConnect(server.name)
                 }
                 className={`text-xs ${!isConnected ? "bg-hex-blue/80 hover:bg-hex-blue text-white" : "border-hex-blue/30"}`}
               >
-                {connecting === server.name
-                  ? "..."
-                  : isConnected
-                    ? "断开"
-                    : "连接"}
+                {connecting === server.name ? "..." : isConnected ? "断开" : "连接"}
               </Button>
               <Button
                 size="sm"
