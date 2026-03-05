@@ -9,8 +9,13 @@ interface MessageItemProps {
   message: Message
 }
 
+function stripThinkTags(content: string): string {
+  return content.replace(/<think>[\s\S]*?<\/think>\s*/g, "")
+}
+
 export function MessageItem({ message }: MessageItemProps) {
   const isUser = message.role === "user"
+  const displayContent = isUser ? message.content : stripThinkTags(message.content)
 
   return (
     <div className={`flex items-start gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
@@ -44,7 +49,7 @@ export function MessageItem({ message }: MessageItemProps) {
           </>
         ) : (
           <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-            {message.content}
+            {displayContent}
           </ReactMarkdown>
         )}
       </div>
