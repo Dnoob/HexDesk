@@ -22,7 +22,7 @@ impl Default for Settings {
             provider: "minimax".to_string(),
             api_key: String::new(),
             model: "MiniMax-M2.5".to_string(),
-            base_url: "https://api.minimax.chat/v1".to_string(),
+            base_url: "https://api.minimaxi.com/v1".to_string(),
             max_tokens: 4096,
             temperature: 0.7,
         }

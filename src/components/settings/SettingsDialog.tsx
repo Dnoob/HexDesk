@@ -17,7 +17,7 @@ interface SettingsDialogProps {
 }
 
 const providerPresets: Record<string, { baseUrl: string; model: string }> = {
-  minimax: { baseUrl: "https://api.minimax.chat/v1", model: "MiniMax-M2.5" },
+  minimax: { baseUrl: "https://api.minimaxi.com/v1", model: "MiniMax-M2.5" },
   openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
   deepseek: { baseUrl: "https://api.deepseek.com", model: "deepseek-chat" },
 }
