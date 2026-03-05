@@ -1,6 +1,5 @@
 import { useState, useRef, type KeyboardEvent, type ClipboardEvent } from "react"
 import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
 import {
   ArrowUp,
   Square,
@@ -9,7 +8,6 @@ import {
   Zap,
   Bot,
   FolderOpen,
-  ChevronDown,
 } from "lucide-react"
 import { useChatStore } from "@/stores/chat"
 import { useAgentStore } from "@/stores/agent"
@@ -95,7 +93,6 @@ export function ChatInput() {
     setImages((prev) => prev.filter((_, i) => i !== index))
   }
 
-  // Extract folder name from full path
   const folderName = workingDirectory
     ? workingDirectory.split(/[\\/]/).filter(Boolean).pop() ?? workingDirectory
     : ""
@@ -125,17 +122,13 @@ export function ChatInput() {
           </div>
         )}
 
-        {/* Textarea — top area */}
+        {/* Textarea */}
         <Textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={
-            isAgentMode
-              ? "描述任务，AI 将规划并执行..."
-              : "描述任务，@ 可调用技能"
-          }
+          placeholder="有什么可以帮你的？"
           className="min-h-[44px] max-h-36 resize-none border-0 bg-transparent px-4 pt-3 pb-1 text-sm focus-visible:ring-0"
           rows={1}
           disabled={isStreaming}
@@ -143,8 +136,8 @@ export function ChatInput() {
 
         {/* Bottom toolbar */}
         <div className="flex items-center justify-between px-3 pb-2.5">
-          {/* Left: folder tag + attach */}
-          <div className="flex items-center gap-1.5">
+          {/* Left tools */}
+          <div className="flex items-center gap-1">
             {workingDirectory ? (
               <button
                 type="button"
@@ -165,66 +158,66 @@ export function ChatInput() {
                 </button>
               </button>
             ) : (
-              <Button
-                size="icon"
-                variant="ghost"
+              <button
+                type="button"
                 onClick={handleSelectFolder}
                 disabled={isStreaming}
-                className="size-8 text-muted-foreground"
+                className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground hover:bg-accent disabled:opacity-40"
                 title="选择工作目录"
               >
-                <FolderOpen className="size-4" />
-              </Button>
+                <FolderOpen className="size-[18px]" />
+              </button>
             )}
-            <Button
-              size="icon"
-              variant="ghost"
+            <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isStreaming}
-              className="size-8 text-muted-foreground"
-              title="添加附件"
+              className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground hover:bg-accent disabled:opacity-40"
+              title="添加图片"
             >
-              <Paperclip className="size-4" />
-            </Button>
+              <Paperclip className="size-[18px]" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSkillsOpen(true)}
+              disabled={isStreaming}
+              className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground hover:bg-accent disabled:opacity-40"
+              title="技能"
+            >
+              <Zap className="size-[18px]" />
+            </button>
           </div>
 
-          {/* Right: mode selector + send */}
+          {/* Right: agent toggle + send */}
           <div className="flex items-center gap-2">
-            {/* Mode toggle */}
             <button
               type="button"
               onClick={toggleAgentMode}
               disabled={isStreaming}
-              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${
+              className={`flex size-8 items-center justify-center rounded-lg transition-all disabled:opacity-40 ${
                 isAgentMode
-                  ? "bg-hex-blue/15 text-hex-cyan"
+                  ? "bg-hex-cyan/15 text-hex-cyan shadow-[0_0_8px_rgba(0,200,255,0.12)]"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent"
               }`}
+              title={isAgentMode ? "关闭 Agent 模式" : "开启 Agent 模式"}
             >
-              {isAgentMode ? (
-                <Bot className="size-3.5" />
-              ) : (
-                <Zap className="size-3.5" />
-              )}
-              <span>{isAgentMode ? "Agent" : "标准"}</span>
-              <ChevronDown className="size-3" />
+              <Bot className="size-[18px]" />
             </button>
 
-            {/* Send / Stop */}
             {isStreaming ? (
               <button
                 type="button"
                 onClick={stopStreaming}
                 className="flex size-8 items-center justify-center rounded-full bg-destructive text-destructive-foreground transition-colors hover:bg-destructive/90"
               >
-                <Square className="size-3" />
+                <Square className="size-3.5" />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleSend}
                 disabled={!canSend}
-                className="flex size-8 items-center justify-center rounded-full bg-foreground text-background transition-opacity disabled:opacity-30"
+                className="flex size-8 items-center justify-center rounded-full bg-foreground text-background transition-opacity disabled:opacity-25"
               >
                 <ArrowUp className="size-4" strokeWidth={2.5} />
               </button>
@@ -233,7 +226,7 @@ export function ChatInput() {
         </div>
       </div>
 
-      {/* Hidden elements */}
+      {/* Hidden */}
       <SkillsPanel
         open={skillsOpen}
         onOpenChange={setSkillsOpen}
