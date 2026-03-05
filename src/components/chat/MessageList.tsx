@@ -21,12 +21,18 @@ export function MessageList() {
           const isLastAssistant =
             msg.role === "assistant" && index === messages.length - 1
           return (
-            <MessageItem
+            <div
               key={msg.id}
-              message={msg}
-              isLastAssistant={isLastAssistant}
-              isStreaming={isStreaming}
-            />
+              className={
+                isLastAssistant && isStreaming ? "" : "animate-message-in"
+              }
+            >
+              <MessageItem
+                message={msg}
+                isLastAssistant={isLastAssistant}
+                isStreaming={isStreaming}
+              />
+            </div>
           )
         })}
         <div ref={bottomRef} />

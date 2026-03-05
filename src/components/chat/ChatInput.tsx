@@ -99,7 +99,7 @@ export function ChatInput() {
 
   return (
     <div className="mx-auto mt-auto w-full max-w-3xl shrink-0 px-4 pb-4">
-      <div className="flex flex-col rounded-2xl border bg-card shadow-lg">
+      <div className={`flex flex-col rounded-2xl border border-border/50 bg-card/80 backdrop-blur-xl shadow-xl ring-1 ring-white/[0.03] transition-all duration-200 focus-within:border-hex-cyan/30 focus-within:ring-hex-cyan/10 focus-within:shadow-[0_0_15px_rgba(0,200,255,0.06)] ${isAgentMode ? "border-hex-cyan/20" : ""}`}>
         {/* Image previews */}
         {images.length > 0 && (
           <div className="flex flex-wrap gap-2 px-4 pt-3">
@@ -217,7 +217,7 @@ export function ChatInput() {
                 type="button"
                 onClick={handleSend}
                 disabled={!canSend}
-                className="flex size-8 items-center justify-center rounded-full bg-foreground text-background transition-opacity disabled:opacity-25"
+                className="flex size-8 items-center justify-center rounded-full bg-foreground text-background transition-all disabled:opacity-25 enabled:shadow-[0_0_10px_rgba(0,200,255,0.15)] enabled:hover:shadow-[0_0_15px_rgba(0,200,255,0.25)]"
               >
                 <ArrowUp className="size-4" strokeWidth={2.5} />
               </button>
