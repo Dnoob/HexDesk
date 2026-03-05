@@ -3,9 +3,9 @@ use std::process::Command;
 
 #[derive(Serialize)]
 pub struct ShellOutput {
-    stdout: String,
-    stderr: String,
-    exit_code: i32,
+    pub stdout: String,
+    pub stderr: String,
+    pub exit_code: i32,
 }
 
 const DANGEROUS_PATTERNS: &[&str] = &[

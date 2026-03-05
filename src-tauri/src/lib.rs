@@ -3,6 +3,7 @@ mod db;
 mod llm;
 mod mcp;
 mod state;
+mod tools;
 
 use state::AppState;
 use std::sync::Mutex;
