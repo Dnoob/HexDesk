@@ -1,8 +1,9 @@
 import { useState, useRef, type KeyboardEvent, type ClipboardEvent } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { SendHorizontal, Square, ImagePlus, X, Zap } from "lucide-react"
+import { SendHorizontal, Square, ImagePlus, X, Zap, Bot } from "lucide-react"
 import { useChatStore } from "@/stores/chat"
+import { useAgentStore } from "@/stores/agent"
 import { SkillsPanel } from "./SkillsPanel"
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -22,6 +23,8 @@ export function ChatInput() {
   const sendMessage = useChatStore((s) => s.sendMessage)
   const isStreaming = useChatStore((s) => s.isStreaming)
   const stopStreaming = useChatStore((s) => s.stopStreaming)
+  const isAgentMode = useAgentStore((s) => s.isAgentMode)
+  const toggleAgentMode = useAgentStore((s) => s.toggleAgentMode)
 
   const canSend = (content.trim().length > 0 || images.length > 0) && !isStreaming
 
@@ -112,6 +115,16 @@ export function ChatInput() {
         >
           <Zap className="size-4" />
         </Button>
+        <Button
+          size="icon"
+          variant={isAgentMode ? "default" : "ghost"}
+          onClick={toggleAgentMode}
+          disabled={isStreaming}
+          className="size-8 shrink-0"
+          title="Agent mode"
+        >
+          <Bot className="size-4" />
+        </Button>
         <SkillsPanel
           open={skillsOpen}
           onOpenChange={setSkillsOpen}
@@ -132,7 +145,7 @@ export function ChatInput() {
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder="Send a message..."
+          placeholder={isAgentMode ? "Describe your task, AI will plan and execute..." : "Send a message..."}
           className="min-h-10 max-h-40 resize-none pr-12"
           rows={1}
           disabled={isStreaming}
