@@ -20,6 +20,7 @@ export interface Settings {
   baseUrl: string
   maxTokens: number
   temperature: number
+  systemPrompt: string
 }
 
 export type ChatMessageContent = string | ChatContentPart[]

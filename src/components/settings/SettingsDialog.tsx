@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
+import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useSettingsStore } from "@/stores/settings"
@@ -23,7 +24,7 @@ const providerPresets: Record<string, { baseUrl: string; model: string }> = {
 }
 
 export default function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const { provider, apiKey, model, baseUrl, maxTokens, temperature, updateSettings } = useSettingsStore()
+  const { provider, apiKey, model, baseUrl, maxTokens, temperature, systemPrompt, updateSettings } = useSettingsStore()
 
   const handleProviderChange = (value: string) => {
     const preset = providerPresets[value]
@@ -113,6 +114,16 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                   step={0.1}
                   value={[temperature]}
                   onValueChange={([value]) => updateSettings({ temperature: value })}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="systemPrompt">System Prompt</Label>
+                <Textarea
+                  id="systemPrompt"
+                  rows={5}
+                  value={systemPrompt}
+                  onChange={(e) => updateSettings({ systemPrompt: e.target.value })}
                 />
               </div>
 

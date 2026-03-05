@@ -14,6 +14,7 @@ pub struct Settings {
     pub base_url: String,
     pub max_tokens: u32,
     pub temperature: f64,
+    pub system_prompt: String,
 }
 
 impl Default for Settings {
@@ -25,6 +26,7 @@ impl Default for Settings {
             base_url: "https://api.minimaxi.com/v1".to_string(),
             max_tokens: 4096,
             temperature: 0.7,
+            system_prompt: "你是 HexDesk AI 助手，一个强大的桌面级通用 AI 助手。你可以帮助用户进行文件操作、执行命令、生成文档等。请使用中文回复。".to_string(),
         }
     }
 }

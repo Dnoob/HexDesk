@@ -192,12 +192,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     // Build messages array for API (exclude the empty assistant placeholder)
     const allMessages = get().messages
-    const apiMessages: ChatMessage[] = allMessages
-      .slice(0, -1)
-      .map((m) => ({
+    const systemPrompt = useSettingsStore.getState().systemPrompt
+    const apiMessages: ChatMessage[] = [
+      { role: "system", content: systemPrompt },
+      ...allMessages.slice(0, -1).map((m) => ({
         role: m.role,
         content: buildChatMessageContent(m.content, m.images),
-      }))
+      })),
+    ]
 
     // Sync settings to backend before sending
     const settings = useSettingsStore.getState()
@@ -210,6 +212,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           baseUrl: settings.baseUrl,
           maxTokens: settings.maxTokens,
           temperature: settings.temperature,
+          systemPrompt: settings.systemPrompt,
         },
       })
     } catch {

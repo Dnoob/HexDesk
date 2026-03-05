@@ -15,6 +15,7 @@ export const useSettingsStore = create<SettingsState>()(
       baseUrl: "https://api.minimaxi.com/v1",
       maxTokens: 4096,
       temperature: 0.7,
+      systemPrompt: "你是 HexDesk AI 助手，一个强大的桌面级通用 AI 助手。你可以帮助用户进行文件操作、执行命令、生成文档等。请使用中文回复。",
 
       updateSettings: (partial) => set(partial),
     }),
