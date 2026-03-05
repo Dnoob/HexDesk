@@ -1,5 +1,7 @@
+import { useState } from "react"
 import { Plus, MessageSquare, Settings, Trash2, PanelLeftClose } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import SettingsDialog from "@/components/settings/SettingsDialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -9,6 +11,7 @@ import { useUIStore } from "@/stores/ui"
 export default function Sidebar() {
   const { conversations, currentConversationId, addConversation, selectConversation, deleteConversation } = useChatStore()
   const { toggleSidebar } = useUIStore()
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (
     <div className="flex h-screen w-[260px] flex-shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
@@ -78,7 +81,7 @@ export default function Sidebar() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm">
+                <Button variant="ghost" size="icon-sm" onClick={() => setSettingsOpen(true)}>
                   <Settings className="size-4" />
                 </Button>
               </TooltipTrigger>
@@ -87,6 +90,7 @@ export default function Sidebar() {
           </TooltipProvider>
         </div>
       </div>
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )
 }

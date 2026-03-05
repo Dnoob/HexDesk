@@ -11,3 +11,11 @@ export interface Conversation {
   createdAt: number
   updatedAt: number
 }
+
+export interface Settings {
+  apiKey: string
+  model: string
+  baseUrl: string
+  maxTokens: number
+  temperature: number
+}
