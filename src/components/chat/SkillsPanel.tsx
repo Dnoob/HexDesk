@@ -47,9 +47,11 @@ export function SkillsPanel({ open, onOpenChange, onSend }: SkillsPanelProps) {
   return (
     <>
       <Dialog open={open && !selectedSkill} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg border-hex-blue/30 bg-background/95 backdrop-blur-sm">
           <DialogHeader>
-            <DialogTitle>Skills</DialogTitle>
+            <DialogTitle className="text-lg font-bold text-hex-cyan">
+              技能
+            </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             {skills.map((skill) => (
@@ -57,7 +59,7 @@ export function SkillsPanel({ open, onOpenChange, onSend }: SkillsPanelProps) {
                 key={skill.id}
                 type="button"
                 onClick={() => handleSkillClick(skill)}
-                className="flex items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent"
+                className="flex items-start gap-3 rounded-xl border border-hex-blue/20 p-3 text-left transition-all hover:border-hex-cyan/40 hover:bg-hex-blue/10 hover:shadow-[0_0_12px_rgba(0,200,255,0.05)]"
               >
                 <span className="text-2xl leading-none">{skill.icon}</span>
                 <div className="min-w-0">
@@ -119,16 +121,19 @@ function SkillVariablesDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg border-hex-blue/30 bg-background/95 backdrop-blur-sm">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-hex-cyan">
             {skill.icon} {skill.name}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4">
           {(skill.variables ?? []).map((variable) => (
             <div key={variable.name} className="flex flex-col gap-1.5">
-              <Label htmlFor={`skill-var-${variable.name}`}>
+              <Label
+                htmlFor={`skill-var-${variable.name}`}
+                className="text-muted-foreground"
+              >
                 {variable.label}
               </Label>
               {variable.type === "select" && variable.options ? (
@@ -140,7 +145,7 @@ function SkillVariablesDialog({
                 >
                   <SelectTrigger
                     id={`skill-var-${variable.name}`}
-                    className="w-full"
+                    className="w-full border-hex-blue/20 focus:border-hex-cyan/50"
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -164,7 +169,7 @@ function SkillVariablesDialog({
                   }
                   placeholder={variable.placeholder}
                   rows={4}
-                  className="resize-none"
+                  className="resize-none border-hex-blue/20 focus:border-hex-cyan/50"
                 />
               ) : (
                 <Input
@@ -177,17 +182,22 @@ function SkillVariablesDialog({
                     }))
                   }
                   placeholder={variable.placeholder}
+                  className="border-hex-blue/20 focus:border-hex-cyan/50"
                 />
               )}
             </div>
           ))}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
+          <Button variant="outline" onClick={onCancel} className="border-hex-blue/30">
+            取消
           </Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit}>
-            Send
+          <Button
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="bg-hex-blue/80 hover:bg-hex-blue text-white"
+          >
+            发送
           </Button>
         </DialogFooter>
       </DialogContent>

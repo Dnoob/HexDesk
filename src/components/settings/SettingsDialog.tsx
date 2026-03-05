@@ -37,99 +37,148 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent className="sm:max-w-[580px] border-hex-blue/30 bg-background/95 backdrop-blur-sm">
         <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
+          <DialogTitle className="text-lg font-bold text-hex-cyan">
+            设置
+          </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="general">
-          <TabsList className="w-full">
-            <TabsTrigger value="general" className="flex-1">General</TabsTrigger>
-            <TabsTrigger value="scheduler" className="flex-1">Scheduled Tasks</TabsTrigger>
+          <TabsList className="w-full bg-hex-blue/10 border border-hex-blue/20">
+            <TabsTrigger
+              value="general"
+              className="flex-1 data-[state=active]:bg-hex-blue/20 data-[state=active]:text-hex-cyan"
+            >
+              通用
+            </TabsTrigger>
+            <TabsTrigger
+              value="scheduler"
+              className="flex-1 data-[state=active]:bg-hex-blue/20 data-[state=active]:text-hex-cyan"
+            >
+              定时任务
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
-            <div className="flex flex-col gap-4 py-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="provider">Provider</Label>
-                <Select value={provider} onValueChange={handleProviderChange}>
-                  <SelectTrigger id="provider">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="minimax">MiniMax</SelectItem>
-                    <SelectItem value="openai">OpenAI</SelectItem>
-                    <SelectItem value="deepseek">DeepSeek</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="flex flex-col gap-5 py-2 max-h-[60vh] overflow-y-auto pr-1">
+              {/* 模型配置 */}
+              <section className="flex flex-col gap-3">
+                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
+                  模型配置
+                </h3>
+                <Separator className="bg-hex-blue/20" />
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="apiKey">API Key</Label>
-                <Input
-                  id="apiKey"
-                  type="password"
-                  placeholder="Enter your API key"
-                  value={apiKey}
-                  onChange={(e) => updateSettings({ apiKey: e.target.value })}
-                />
-              </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="provider" className="text-muted-foreground">服务商</Label>
+                  <Select value={provider} onValueChange={handleProviderChange}>
+                    <SelectTrigger id="provider" className="border-hex-blue/20 focus:border-hex-cyan/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="minimax">MiniMax</SelectItem>
+                      <SelectItem value="openai">OpenAI</SelectItem>
+                      <SelectItem value="deepseek">DeepSeek</SelectItem>
+                      <SelectItem value="custom">自定义</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="model">Model</Label>
-                <Input
-                  id="model"
-                  value={model}
-                  onChange={(e) => updateSettings({ model: e.target.value })}
-                />
-              </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="apiKey" className="text-muted-foreground">API 密钥</Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder="输入你的 API 密钥"
+                    value={apiKey}
+                    onChange={(e) => updateSettings({ apiKey: e.target.value })}
+                    className="border-hex-blue/20 focus:border-hex-cyan/50"
+                  />
+                </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="baseUrl">Base URL</Label>
-                <Input
-                  id="baseUrl"
-                  value={baseUrl}
-                  onChange={(e) => updateSettings({ baseUrl: e.target.value })}
-                />
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="model" className="text-muted-foreground">模型</Label>
+                    <Input
+                      id="model"
+                      value={model}
+                      onChange={(e) => updateSettings({ model: e.target.value })}
+                      className="border-hex-blue/20 focus:border-hex-cyan/50"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="baseUrl" className="text-muted-foreground">接口地址</Label>
+                    <Input
+                      id="baseUrl"
+                      value={baseUrl}
+                      onChange={(e) => updateSettings({ baseUrl: e.target.value })}
+                      className="border-hex-blue/20 focus:border-hex-cyan/50"
+                    />
+                  </div>
+                </div>
+              </section>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="maxTokens">Max Tokens</Label>
-                <Input
-                  id="maxTokens"
-                  type="number"
-                  min={1}
-                  max={65536}
-                  value={maxTokens}
-                  onChange={(e) => updateSettings({ maxTokens: Number(e.target.value) })}
-                />
-              </div>
+              {/* 生成参数 */}
+              <section className="flex flex-col gap-3">
+                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
+                  生成参数
+                </h3>
+                <Separator className="bg-hex-blue/20" />
 
-              <div className="flex flex-col gap-2">
-                <Label>Temperature: {temperature.toFixed(1)}</Label>
-                <Slider
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  value={[temperature]}
-                  onValueChange={([value]) => updateSettings({ temperature: value })}
-                />
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="maxTokens" className="text-muted-foreground">最大令牌数</Label>
+                    <Input
+                      id="maxTokens"
+                      type="number"
+                      min={1}
+                      max={65536}
+                      value={maxTokens}
+                      onChange={(e) => updateSettings({ maxTokens: Number(e.target.value) })}
+                      className="border-hex-blue/20 focus:border-hex-cyan/50"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label className="text-muted-foreground">
+                      随机性：<span className="text-hex-cyan font-mono">{temperature.toFixed(1)}</span>
+                    </Label>
+                    <Slider
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      value={[temperature]}
+                      onValueChange={([value]) => updateSettings({ temperature: value })}
+                      className="mt-2"
+                    />
+                  </div>
+                </div>
+              </section>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="systemPrompt">System Prompt</Label>
+              {/* 系统提示词 */}
+              <section className="flex flex-col gap-3">
+                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
+                  系统提示词
+                </h3>
+                <Separator className="bg-hex-blue/20" />
+
                 <Textarea
                   id="systemPrompt"
-                  rows={5}
+                  rows={4}
                   value={systemPrompt}
                   onChange={(e) => updateSettings({ systemPrompt: e.target.value })}
+                  placeholder="设定 AI 的行为和风格..."
+                  className="border-hex-blue/20 focus:border-hex-cyan/50 resize-none"
                 />
-              </div>
+              </section>
 
-              <Separator />
-
-              <McpSection />
+              {/* MCP 服务器 */}
+              <section className="flex flex-col gap-3">
+                <h3 className="text-sm font-semibold text-hex-cyan tracking-wide">
+                  MCP 服务器
+                </h3>
+                <Separator className="bg-hex-blue/20" />
+                <McpSection />
+              </section>
             </div>
           </TabsContent>
 
@@ -187,61 +236,83 @@ function McpSection() {
 
   return (
     <div className="flex flex-col gap-3">
-      <Label className="text-base font-semibold">MCP Servers</Label>
-
       {servers.map((server) => {
         const isConnected = Boolean(connectedTools[server.name])
         const toolCount = connectedTools[server.name]?.length ?? 0
         return (
-          <div key={server.name} className="flex items-center gap-2 rounded border p-2 text-sm">
-            <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{server.name}</div>
-              <div className="text-muted-foreground truncate text-xs">
-                {server.command} {server.args.join(" ")}
+          <div
+            key={server.name}
+            className="flex items-center gap-3 rounded-xl border border-hex-blue/20 p-3 text-sm transition-colors hover:border-hex-cyan/30 hover:bg-hex-blue/5"
+          >
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <span
+                className={`inline-block h-2 w-2 rounded-full shrink-0 ${
+                  isConnected ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]" : "bg-muted-foreground/40"
+                }`}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{server.name}</div>
+                <div className="text-muted-foreground truncate text-xs">
+                  {server.command} {server.args.join(" ")}
+                </div>
+                {isConnected && (
+                  <div className="text-xs text-hex-cyan/70">{toolCount} 个工具</div>
+                )}
               </div>
-              {isConnected && (
-                <div className="text-xs text-green-600">{toolCount} tools</div>
-              )}
             </div>
-            <Button
-              size="sm"
-              variant={isConnected ? "outline" : "default"}
-              disabled={connecting === server.name}
-              onClick={() => isConnected ? handleDisconnect(server.name) : handleConnect(server.name)}
-            >
-              {connecting === server.name ? "..." : isConnected ? "Disconnect" : "Connect"}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => removeServer(server.name)}
-            >
-              X
-            </Button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                size="sm"
+                variant={isConnected ? "outline" : "default"}
+                disabled={connecting === server.name}
+                onClick={() => isConnected ? handleDisconnect(server.name) : handleConnect(server.name)}
+                className={`text-xs ${!isConnected ? "bg-hex-blue/80 hover:bg-hex-blue text-white" : "border-hex-blue/30"}`}
+              >
+                {connecting === server.name ? "..." : isConnected ? "断开" : "连接"}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-xs text-destructive/70 hover:text-destructive"
+                onClick={() => removeServer(server.name)}
+              >
+                删除
+              </Button>
+            </div>
           </div>
         )
       })}
 
       {error && <div className="text-sm text-red-500">{error}</div>}
 
-      <div className="flex flex-col gap-2 rounded border p-2">
+      <div className="flex flex-col gap-2 rounded-xl border border-dashed border-hex-blue/20 p-3">
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            placeholder="服务器名称"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="border-hex-blue/20 focus:border-hex-cyan/50 text-sm"
+          />
+          <Input
+            placeholder="命令（如 npx）"
+            value={command}
+            onChange={(e) => setCommand(e.target.value)}
+            className="border-hex-blue/20 focus:border-hex-cyan/50 text-sm"
+          />
+        </div>
         <Input
-          placeholder="Server name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Input
-          placeholder="Command (e.g. npx)"
-          value={command}
-          onChange={(e) => setCommand(e.target.value)}
-        />
-        <Input
-          placeholder="Args (space-separated)"
+          placeholder="参数（空格分隔）"
           value={args}
           onChange={(e) => setArgs(e.target.value)}
+          className="border-hex-blue/20 focus:border-hex-cyan/50 text-sm"
         />
-        <Button size="sm" onClick={handleAdd} disabled={!name.trim() || !command.trim()}>
-          Add Server
+        <Button
+          size="sm"
+          onClick={handleAdd}
+          disabled={!name.trim() || !command.trim()}
+          className="bg-hex-blue/80 hover:bg-hex-blue text-white"
+        >
+          添加服务器
         </Button>
       </div>
     </div>

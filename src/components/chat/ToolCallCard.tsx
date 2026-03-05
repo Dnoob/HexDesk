@@ -1,5 +1,14 @@
 import { useState } from "react"
-import { FileText, Terminal, Search, Loader2, CheckCircle2, AlertCircle, ChevronDown, ChevronRight } from "lucide-react"
+import {
+  FileText,
+  Terminal,
+  Search,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react"
 import type { ToolCallInfo } from "@/types"
 
 const toolNameMap: Record<string, string> = {
@@ -34,37 +43,48 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
   const isDone = toolCall.status === "done"
   const isError = toolCall.status === "error"
 
+  const borderColor = isCalling
+    ? "border-l-blue-500"
+    : isDone
+      ? "border-l-green-500"
+      : "border-l-red-500"
+
   let argsSummary = ""
   try {
     const parsed = JSON.parse(toolCall.arguments) as Record<string, unknown>
     const firstValue = Object.values(parsed)[0]
-    argsSummary = typeof firstValue === "string" ? firstValue : JSON.stringify(firstValue)
+    argsSummary =
+      typeof firstValue === "string" ? firstValue : JSON.stringify(firstValue)
   } catch {
     argsSummary = toolCall.arguments
   }
 
   return (
-    <div className="rounded-md border bg-muted/10 px-3 py-2 text-xs">
+    <div
+      className={`rounded-lg border-l-[3px] bg-muted/30 px-3 py-2 text-xs ${borderColor}`}
+    >
       <div
-        className="flex items-center gap-2 cursor-pointer select-none"
+        className={`flex items-center gap-2 select-none ${isDone ? "cursor-pointer" : ""}`}
         onClick={() => isDone && setExpanded((v) => !v)}
       >
-        <span className="text-muted-foreground">{getToolIcon(toolCall.name)}</span>
-        <span className="font-medium">{displayName}</span>
+        <span className="text-hex-cyan">{getToolIcon(toolCall.name)}</span>
+        <span className="font-medium text-foreground">{displayName}</span>
         {argsSummary && (
-          <span className="truncate max-w-48 text-muted-foreground">{argsSummary}</span>
+          <span className="max-w-48 truncate text-muted-foreground">
+            {argsSummary}
+          </span>
         )}
-        <span className="ml-auto flex items-center gap-1">
+        <span className="ml-auto flex items-center gap-1.5">
           {isCalling && (
             <>
               <Loader2 className="size-3.5 animate-spin text-blue-500" />
-              <span className="text-muted-foreground">执行中...</span>
+              <span className="text-blue-400">执行中...</span>
             </>
           )}
           {isDone && (
             <>
               <CheckCircle2 className="size-3.5 text-green-500" />
-              <span className="text-muted-foreground">完成</span>
+              <span className="text-green-400">已完成</span>
               {expanded ? (
                 <ChevronDown className="size-3.5 text-muted-foreground" />
               ) : (
@@ -75,13 +95,13 @@ export function ToolCallCard({ toolCall }: ToolCallCardProps) {
           {isError && (
             <>
               <AlertCircle className="size-3.5 text-red-500" />
-              <span className="text-red-500">错误</span>
+              <span className="text-red-400">出错</span>
             </>
           )}
         </span>
       </div>
       {expanded && toolCall.result && (
-        <pre className="mt-2 max-h-40 overflow-auto rounded bg-muted p-2 text-xs whitespace-pre-wrap">
+        <pre className="mt-2 max-h-40 overflow-auto rounded-md bg-background/50 p-2.5 font-mono text-xs whitespace-pre-wrap text-muted-foreground">
           {toolCall.result}
         </pre>
       )}

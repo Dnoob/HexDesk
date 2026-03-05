@@ -1,7 +1,15 @@
 import { useState, useRef, type KeyboardEvent, type ClipboardEvent } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { SendHorizontal, Square, ImagePlus, X, Zap, Bot, FolderOpen } from "lucide-react"
+import {
+  SendHorizontal,
+  Square,
+  ImagePlus,
+  X,
+  Zap,
+  Bot,
+  FolderOpen,
+} from "lucide-react"
 import { useChatStore } from "@/stores/chat"
 import { useAgentStore } from "@/stores/agent"
 import { useSettingsStore } from "@/stores/settings"
@@ -37,7 +45,8 @@ export function ChatInput() {
     }
   }
 
-  const canSend = (content.trim().length > 0 || images.length > 0) && !isStreaming
+  const canSend =
+    (content.trim().length > 0 || images.length > 0) && !isStreaming
 
   function handleSend() {
     if (!canSend) return
@@ -86,126 +95,148 @@ export function ChatInput() {
   }
 
   return (
-    <div className="border-t p-4">
-      {/* Folder selector tag */}
-      <div className="mb-2 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleSelectFolder}
-          className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-        >
-          <FolderOpen className="size-3.5" />
-          {workingDirectory ? (
-            <span className="max-w-[300px] truncate" title={workingDirectory}>
-              {workingDirectory}
-            </span>
-          ) : (
-            <span>选择工作目录</span>
-          )}
-        </button>
+    <div className="mx-auto w-full max-w-3xl p-4">
+      <div className="rounded-2xl border bg-card shadow-lg">
+        {/* Working directory tag */}
         {workingDirectory && (
-          <button
-            type="button"
-            onClick={() => updateSettings({ workingDirectory: "" })}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="size-3.5" />
-          </button>
-        )}
-      </div>
-      {images.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-2">
-          {images.map((img, i) => (
-            <div key={i} className="relative group">
-              <img
-                src={img}
-                alt={`preview ${i + 1}`}
-                className="size-16 rounded-lg object-cover"
-              />
+          <div className="flex items-center gap-1.5 px-3 pt-2.5">
+            <div className="inline-flex items-center gap-1.5 rounded-md bg-accent px-2 py-0.5 text-xs text-muted-foreground">
+              <FolderOpen className="size-3" />
+              <span className="max-w-[280px] truncate" title={workingDirectory}>
+                {workingDirectory}
+              </span>
               <button
                 type="button"
-                onClick={() => removeImage(i)}
-                className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => updateSettings({ workingDirectory: "" })}
+                className="ml-0.5 rounded hover:text-foreground transition-colors"
               >
                 <X className="size-3" />
               </button>
             </div>
-          ))}
-        </div>
-      )}
-      <div className="relative flex items-end gap-2">
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isStreaming}
-          className="size-8 shrink-0"
-        >
-          <ImagePlus className="size-4" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={() => setSkillsOpen(true)}
-          disabled={isStreaming}
-          className="size-8 shrink-0"
-        >
-          <Zap className="size-4" />
-        </Button>
-        <Button
-          size="icon"
-          variant={isAgentMode ? "default" : "ghost"}
-          onClick={toggleAgentMode}
-          disabled={isStreaming}
-          className="size-8 shrink-0"
-          title="Agent mode"
-        >
-          <Bot className="size-4" />
-        </Button>
-        <SkillsPanel
-          open={skillsOpen}
-          onOpenChange={setSkillsOpen}
-          onSend={(message) => {
-            sendMessage(message)
-          }}
-        />
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={handleFileChange}
-        />
-        <Textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          placeholder={isAgentMode ? "Describe your task, AI will plan and execute..." : "Send a message..."}
-          className="min-h-10 max-h-40 resize-none pr-12"
-          rows={1}
-          disabled={isStreaming}
-        />
-        {isStreaming ? (
-          <Button
-            size="icon"
-            variant="destructive"
-            onClick={stopStreaming}
-            className="absolute right-2 bottom-1.5 size-8"
-          >
-            <Square className="size-3" />
-          </Button>
-        ) : (
-          <Button
-            size="icon"
-            onClick={handleSend}
-            disabled={!canSend}
-            className="absolute right-2 bottom-1.5 size-8"
-          >
-            <SendHorizontal className="size-4" />
-          </Button>
+          </div>
         )}
+
+        {/* Image previews */}
+        {images.length > 0 && (
+          <div className="flex flex-wrap gap-2 px-3 pt-2.5">
+            {images.map((img, i) => (
+              <div key={i} className="group relative">
+                <img
+                  src={img}
+                  alt={`preview ${i + 1}`}
+                  className="size-16 rounded-lg object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeImage(i)}
+                  className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Input row */}
+        <div className="flex items-end gap-1 p-2">
+          {/* Tool buttons */}
+          <div className="flex items-center">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isStreaming}
+              className="size-8 shrink-0"
+            >
+              <ImagePlus className="size-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setSkillsOpen(true)}
+              disabled={isStreaming}
+              className="size-8 shrink-0"
+            >
+              <Zap className="size-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant={isAgentMode ? "default" : "ghost"}
+              onClick={toggleAgentMode}
+              disabled={isStreaming}
+              className="size-8 shrink-0"
+              title="Agent 模式"
+            >
+              <Bot className="size-4" />
+            </Button>
+            {!workingDirectory && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleSelectFolder}
+                disabled={isStreaming}
+                className="size-8 shrink-0"
+                title="选择工作目录"
+              >
+                <FolderOpen className="size-4" />
+              </Button>
+            )}
+          </div>
+
+          <SkillsPanel
+            open={skillsOpen}
+            onOpenChange={setSkillsOpen}
+            onSend={(message) => {
+              sendMessage(message)
+            }}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          {/* Textarea */}
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            placeholder={
+              isAgentMode
+                ? "描述你的任务，AI 将规划并执行..."
+                : "发送消息..."
+            }
+            className="min-h-10 max-h-32 flex-1 resize-none border-0 bg-transparent focus-visible:ring-0"
+            rows={1}
+            disabled={isStreaming}
+          />
+
+          {/* Send / Stop button */}
+          {isStreaming ? (
+            <Button
+              size="icon"
+              variant="destructive"
+              onClick={stopStreaming}
+              className="size-8 shrink-0 rounded-full"
+            >
+              <Square className="size-3" />
+            </Button>
+          ) : (
+            <Button
+              size="icon"
+              onClick={handleSend}
+              disabled={!canSend}
+              className="size-8 shrink-0 rounded-full"
+            >
+              <SendHorizontal className="size-4" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   )

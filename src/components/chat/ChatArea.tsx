@@ -1,43 +1,68 @@
-import { Bot, PanelLeft } from "lucide-react"
+import { Mail, Code, FileText, Languages, PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useChatStore } from "@/stores/chat"
 import { useUIStore } from "@/stores/ui"
 import { MessageList } from "./MessageList"
 import { ChatInput } from "./ChatInput"
 
-const quickPrompts = [
-  "帮我写一封工作邮件",
-  "解释一段代码的作用",
-  "总结一篇文章的要点",
-  "翻译以下内容为英语",
+const suggestions = [
+  {
+    icon: Mail,
+    title: "撰写邮件",
+    description: "帮我写一封专业的工作邮件",
+  },
+  {
+    icon: Code,
+    title: "解释代码",
+    description: "分析并解释一段代码的作用",
+  },
+  {
+    icon: FileText,
+    title: "总结文档",
+    description: "帮我总结一篇文章的关键要点",
+  },
+  {
+    icon: Languages,
+    title: "翻译内容",
+    description: "将以下内容翻译为英语",
+  },
 ]
 
 function WelcomePage() {
   const addConversation = useChatStore((s) => s.addConversation)
   const sendMessage = useChatStore((s) => s.sendMessage)
 
-  function handleQuickPrompt(prompt: string) {
+  function handleSuggestion(description: string) {
     addConversation()
-    sendMessage(prompt)
+    sendMessage(description)
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4">
-      <Bot className="size-16 text-muted-foreground" />
-      <h1 className="text-2xl font-semibold">HexDesk</h1>
-      <p className="text-muted-foreground">Your AI Desktop Assistant</p>
-      <Button onClick={addConversation} className="mt-4">
-        Start a conversation
-      </Button>
-      <div className="mt-2 grid grid-cols-2 gap-2 max-w-md">
-        {quickPrompts.map((prompt) => (
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
+      <div className="animate-float text-center">
+        <h1 className="gradient-text text-5xl font-bold tracking-tight">
+          HexDesk
+        </h1>
+        <p className="mt-3 text-lg text-muted-foreground">
+          你的智能桌面助手
+        </p>
+      </div>
+
+      <div className="mt-6 grid w-full max-w-lg grid-cols-2 gap-3">
+        {suggestions.map((item) => (
           <button
-            key={prompt}
+            key={item.title}
             type="button"
-            onClick={() => handleQuickPrompt(prompt)}
-            className="rounded-lg border px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+            onClick={() => handleSuggestion(item.description)}
+            className="flex items-start gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:bg-accent"
           >
-            {prompt}
+            <item.icon className="mt-0.5 size-5 shrink-0 text-hex-cyan" />
+            <div className="min-w-0">
+              <div className="font-semibold text-sm">{item.title}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                {item.description}
+              </div>
+            </div>
           </button>
         ))}
       </div>
@@ -57,11 +82,11 @@ export default function ChatArea() {
   return (
     <div className="flex flex-1 flex-col h-screen">
       {/* Header */}
-      <div className="flex h-12 items-center gap-2 border-b px-4">
+      <div className="flex h-12 items-center border-b px-4">
         <Button variant="ghost" size="icon-sm" onClick={toggleSidebar}>
           <PanelLeft className="size-4" />
         </Button>
-        <span className="text-sm font-medium">
+        <span className="ml-2 text-sm font-medium truncate">
           {currentConversation?.title ?? "HexDesk"}
         </span>
       </div>
@@ -73,7 +98,10 @@ export default function ChatArea() {
           <ChatInput />
         </>
       ) : (
-        <WelcomePage />
+        <>
+          <WelcomePage />
+          <ChatInput />
+        </>
       )}
     </div>
   )
