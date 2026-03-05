@@ -1,8 +1,9 @@
 import { useState, useRef, type KeyboardEvent, type ClipboardEvent } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { SendHorizontal, Square, ImagePlus, X } from "lucide-react"
+import { SendHorizontal, Square, ImagePlus, X, Zap } from "lucide-react"
 import { useChatStore } from "@/stores/chat"
+import { SkillsPanel } from "./SkillsPanel"
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -16,6 +17,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
 export function ChatInput() {
   const [content, setContent] = useState("")
   const [images, setImages] = useState<string[]>([])
+  const [skillsOpen, setSkillsOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const sendMessage = useChatStore((s) => s.sendMessage)
   const isStreaming = useChatStore((s) => s.isStreaming)
@@ -101,6 +103,22 @@ export function ChatInput() {
         >
           <ImagePlus className="size-4" />
         </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => setSkillsOpen(true)}
+          disabled={isStreaming}
+          className="size-8 shrink-0"
+        >
+          <Zap className="size-4" />
+        </Button>
+        <SkillsPanel
+          open={skillsOpen}
+          onOpenChange={setSkillsOpen}
+          onSend={(message) => {
+            sendMessage(message)
+          }}
+        />
         <input
           ref={fileInputRef}
           type="file"
