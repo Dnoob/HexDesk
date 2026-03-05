@@ -46,3 +46,45 @@ export interface ConfirmationRequest {
   description: string
   details?: string
 }
+
+export interface ScheduledTask {
+  id: string
+  name: string
+  cronExpression: string
+  prompt: string
+  enabled: boolean
+  lastRun: number | null
+  nextRun: number | null
+  createdAt: number
+}
+
+export interface SkillVariable {
+  name: string
+  label: string
+  type: "text" | "select"
+  options?: string[]
+  placeholder?: string
+}
+
+export interface Skill {
+  id: string
+  name: string
+  description: string
+  icon: string
+  prompt: string
+  variables?: SkillVariable[]
+  builtin?: boolean
+}
+
+export interface McpServerConfig {
+  name: string
+  command: string
+  args: string[]
+  env?: Record<string, string>
+}
+
+export interface McpTool {
+  name: string
+  description?: string
+  inputSchema?: Record<string, unknown>
+}

@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use tokio::sync::oneshot;
 
+use crate::mcp::client::McpClient;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
@@ -30,4 +32,5 @@ impl Default for Settings {
 pub struct AppState {
     pub settings: Mutex<Settings>,
     pub pending_confirmations: Mutex<HashMap<String, oneshot::Sender<bool>>>,
+    pub mcp_clients: tokio::sync::Mutex<HashMap<String, McpClient>>,
 }

@@ -1,6 +1,7 @@
 mod commands;
 mod db;
 mod llm;
+mod mcp;
 mod state;
 
 use state::AppState;
@@ -9,12 +10,20 @@ use tauri_plugin_sql::{Migration, MigrationKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let migrations = vec![Migration {
-        version: 1,
-        description: "create conversations and messages tables",
-        sql: include_str!("../migrations/001_init.sql"),
-        kind: MigrationKind::Up,
-    }];
+    let migrations = vec![
+        Migration {
+            version: 1,
+            description: "create conversations and messages tables",
+            sql: include_str!("../migrations/001_init.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 2,
+            description: "create scheduled_tasks table",
+            sql: include_str!("../migrations/002_scheduled_tasks.sql"),
+            kind: MigrationKind::Up,
+        },
+    ];
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -26,6 +35,7 @@ pub fn run() {
         .manage(AppState {
             settings: Mutex::new(state::Settings::default()),
             pending_confirmations: Mutex::new(std::collections::HashMap::new()),
+            mcp_clients: tokio::sync::Mutex::new(std::collections::HashMap::new()),
         })
         .invoke_handler(tauri::generate_handler![
             commands::settings::get_settings,
@@ -40,6 +50,11 @@ pub fn run() {
             commands::documents::generate_word,
             commands::documents::generate_excel,
             commands::documents::generate_pdf,
+            commands::mcp::connect_mcp_server,
+            commands::mcp::disconnect_mcp_server,
+            commands::mcp::list_mcp_tools,
+            commands::mcp::call_mcp_tool,
+            commands::scheduler::parse_cron_next_run,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
