@@ -29,4 +29,6 @@ tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 docx-rs = "0.4"
 rust_xlsxwriter = "0.94"
 genpdf = "0.2"
+cron = "0.13"
+chrono = "0.4"
 
