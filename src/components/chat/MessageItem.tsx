@@ -10,7 +10,11 @@ interface MessageItemProps {
 }
 
 function stripThinkTags(content: string): string {
-  return content.replace(/<think>[\s\S]*?<\/think>\s*/g, "")
+  // Strip complete <think>...</think> blocks
+  let result = content.replace(/<think>[\s\S]*?<\/think>\s*/g, "")
+  // Strip incomplete <think>... (still streaming, no closing tag yet)
+  result = result.replace(/<think>[\s\S]*$/g, "")
+  return result
 }
 
 export function MessageItem({ message }: MessageItemProps) {
