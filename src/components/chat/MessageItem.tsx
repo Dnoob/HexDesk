@@ -1,6 +1,9 @@
 import type { Message } from "@/types"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { User, Bot } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import rehypeHighlight from "rehype-highlight"
 
 interface MessageItemProps {
   message: Message
@@ -17,13 +20,19 @@ export function MessageItem({ message }: MessageItemProps) {
         </AvatarFallback>
       </Avatar>
       <div
-        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
+        className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
           isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-card border"
+            ? "bg-primary text-primary-foreground whitespace-pre-wrap"
+            : "bg-card border markdown-body"
         }`}
       >
-        {message.content}
+        {isUser ? (
+          message.content
+        ) : (
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+            {message.content}
+          </ReactMarkdown>
+        )}
       </div>
     </div>
   )
