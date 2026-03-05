@@ -19,3 +19,12 @@ export interface Settings {
   maxTokens: number
   temperature: number
 }
+
+export interface ChatMessage {
+  role: string
+  content: string
+}
+
+export interface ChunkPayload {
+  content: string
+}
