@@ -82,6 +82,7 @@ apt-get install -y -qq --no-install-recommends \
     nfs-common \
     iproute2 iputils-ping net-tools \
     ca-certificates gnupg \
+    systemd-resolved \
     linux-image-virtual
 
 # Node.js 20 LTS (via NodeSource)
