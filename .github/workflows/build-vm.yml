@@ -1,0 +1,53 @@
+name: Build VM Image
+
+on:
+  push:
+    paths:
+      - "vm/**"
+      - "scripts/build-vm.sh"
+      - ".github/workflows/build-vm.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build VM image
+        run: sudo bash scripts/build-vm.sh
+        env:
+          OUTPUT_DIR: ${{ github.workspace }}/vm-output
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vm-image
+          path: vm-output/
+          retention-days: 30
+
+      - name: Upload to latest release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 查找或创建 vm-latest release（专门存放 VM 镜像）
+          TAG="vm-latest"
+
+          # 尝试删除旧 release（如果存在）
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          git push origin --delete "$TAG" 2>/dev/null || true
+
+          # 创建新 release
+          gh release create "$TAG" \
+            --title "VM Image (latest)" \
+            --notes "Auto-built VM image for HexDesk sandbox. Updated on $(date -u +%Y-%m-%d)." \
+            --latest=false \
+            vm-output/ubuntu.img \
+            vm-output/vmlinuz \
+            vm-output/initrd \
+            vm-output/ubuntu.img.sha256

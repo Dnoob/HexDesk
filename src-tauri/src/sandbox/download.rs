@@ -36,7 +36,7 @@ impl ImageDownloader {
             .map_err(|e| format!("Failed to create vm dir: {}", e))?;
 
         let base_url = if config.download_url.is_empty() {
-            "https://github.com/Dnoob/HexDesk/releases/latest/download".to_string()
+            "https://github.com/Dnoob/HexDesk/releases/download/vm-latest".to_string()
         } else {
             config.download_url.clone()
         };
