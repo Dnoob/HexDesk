@@ -2,11 +2,14 @@ mod commands;
 mod db;
 mod llm;
 mod mcp;
+mod sandbox;
 mod state;
 mod tools;
 
+use sandbox::manager::SandboxManager;
 use state::AppState;
 use std::sync::Mutex;
+use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -39,6 +42,18 @@ pub fn run() {
             pending_confirmations: Mutex::new(std::collections::HashMap::new()),
             mcp_clients: tokio::sync::Mutex::new(std::collections::HashMap::new()),
         })
+        .manage(SandboxManager::new())
+        .setup(|app| {
+            // 后台启动沙盒（不阻塞 app 启动）
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let sandbox = handle.state::<SandboxManager>();
+                if let Err(e) = sandbox.auto_start(&handle).await {
+                    eprintln!("Sandbox auto-start failed: {}", e);
+                }
+            });
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::settings::get_settings,
             commands::settings::save_settings,
@@ -57,6 +72,14 @@ pub fn run() {
             commands::mcp::list_mcp_tools,
             commands::mcp::call_mcp_tool,
             commands::scheduler::parse_cron_next_run,
+            commands::sandbox::sandbox_get_state,
+            commands::sandbox::sandbox_start,
+            commands::sandbox::sandbox_stop,
+            commands::sandbox::sandbox_restart,
+            commands::sandbox::sandbox_exec,
+            commands::sandbox::sandbox_mount_workspace,
+            commands::sandbox::sandbox_clean_workspace,
+            commands::sandbox::sandbox_set_enabled,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

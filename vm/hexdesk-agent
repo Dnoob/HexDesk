@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+"""HexDesk VM Agent — 监听 virtio-serial，执行宿主机发来的命令"""
+
+import json
+import os
+import struct
+import subprocess
+import sys
+import time
+import threading
+import platform
+
+VERSION = "0.1.0"
+SERIAL_PORT = "/dev/virtio-ports/hexdesk.0"
+WORKSPACE = "/workspace"
+
+
+def get_version(cmd):
+    """获取命令版本号"""
+    try:
+        result = subprocess.run(
+            [cmd, "--version"], capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0:
+            return result.stdout.strip().split()[-1]
+        return "not installed"
+    except Exception:
+        return "not installed"
+
+
+def send_message(port, msg):
+    """发送长度前缀的 JSON 消息"""
+    data = json.dumps(msg).encode("utf-8")
+    port.write(struct.pack(">I", len(data)))
+    port.write(data)
+    port.flush()
+
+
+def recv_message(port):
+    """接收长度前缀的 JSON 消息"""
+    header = port.read(4)
+    if len(header) < 4:
+        return None
+    length = struct.unpack(">I", header)[0]
+    data = port.read(length)
+    if len(data) < length:
+        return None
+    return json.loads(data.decode("utf-8"))
+
+
+def handle_exec(port, msg):
+    """执行命令并返回结果"""
+    cmd_id = msg["id"]
+    command = msg["command"]
+    cwd = msg.get("cwd", WORKSPACE)
+    timeout = msg.get("timeout", 30)
+
+    start_time = time.time()
+
+    try:
+        proc = subprocess.Popen(
+            command,
+            shell=True,
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        stdout_chunks = []
+        stderr_chunks = []
+
+        def stream_reader(pipe, channel, chunks):
+            for line in iter(pipe.readline, b""):
+                text = line.decode("utf-8", errors="replace")
+                chunks.append(text)
+                send_message(port, {
+                    "id": cmd_id,
+                    "type": "stream",
+                    "channel": channel,
+                    "data": text,
+                })
+            pipe.close()
+
+        t_out = threading.Thread(
+            target=stream_reader, args=(proc.stdout, "stdout", stdout_chunks)
+        )
+        t_err = threading.Thread(
+            target=stream_reader, args=(proc.stderr, "stderr", stderr_chunks)
+        )
+        t_out.start()
+        t_err.start()
+
+        try:
+            proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+
+        t_out.join(timeout=2)
+        t_err.join(timeout=2)
+
+        duration_ms = int((time.time() - start_time) * 1000)
+
+        send_message(port, {
+            "id": cmd_id,
+            "type": "result",
+            "exit_code": proc.returncode,
+            "stdout": "".join(stdout_chunks),
+            "stderr": "".join(stderr_chunks),
+            "duration_ms": duration_ms,
+        })
+
+    except Exception as e:
+        duration_ms = int((time.time() - start_time) * 1000)
+        send_message(port, {
+            "id": cmd_id,
+            "type": "result",
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": str(e),
+            "duration_ms": duration_ms,
+        })
+
+
+def handle_mount_workspace(port, msg):
+    """切换工作目录挂载"""
+    cmd_id = msg.get("id", "mount")
+    nfs_host = msg.get("nfs_host", "10.0.2.2")
+    export_path = msg.get("export_path", "/workspace")
+
+    try:
+        # 先卸载旧挂载
+        subprocess.run(["umount", WORKSPACE], capture_output=True, timeout=10)
+        # 重新挂载
+        result = subprocess.run(
+            ["mount", "-t", "nfs", "-o", "nolock,vers=3",
+             f"{nfs_host}:{export_path}", WORKSPACE],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"mount failed: {result.stderr}")
+
+        send_message(port, {
+            "id": cmd_id,
+            "type": "result",
+            "exit_code": 0,
+            "stdout": "workspace mounted successfully",
+            "stderr": "",
+            "duration_ms": 0,
+        })
+    except Exception as e:
+        send_message(port, {
+            "id": cmd_id,
+            "type": "result",
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": str(e),
+            "duration_ms": 0,
+        })
+
+
+def main():
+    print(f"[hexdesk-agent] v{VERSION} starting...", flush=True)
+
+    # 等待 virtio-serial 设备就绪
+    while not os.path.exists(SERIAL_PORT):
+        print(f"[hexdesk-agent] waiting for {SERIAL_PORT}...", flush=True)
+        time.sleep(1)
+
+    port = open(SERIAL_PORT, "r+b", buffering=0)
+    print(f"[hexdesk-agent] connected to {SERIAL_PORT}", flush=True)
+
+    # 发送 ready 信号
+    python_ver = platform.python_version()
+    node_ver = get_version("node")
+
+    send_message(port, {
+        "type": "ready",
+        "version": VERSION,
+        "python": python_ver,
+        "node": node_ver,
+    })
+    print(
+        f"[hexdesk-agent] ready signal sent (python={python_ver}, node={node_ver})",
+        flush=True,
+    )
+
+    # 主循环
+    while True:
+        try:
+            msg = recv_message(port)
+            if msg is None:
+                time.sleep(0.1)
+                continue
+
+            msg_type = msg.get("type", "")
+            print(
+                f"[hexdesk-agent] received: {msg_type} id={msg.get('id', 'N/A')}",
+                flush=True,
+            )
+
+            if msg_type == "exec":
+                handle_exec(port, msg)
+            elif msg_type == "mount_workspace":
+                handle_mount_workspace(port, msg)
+            else:
+                print(f"[hexdesk-agent] unknown message type: {msg_type}", flush=True)
+
+        except Exception as e:
+            print(f"[hexdesk-agent] error: {e}", flush=True)
+            time.sleep(1)
+
+
+if __name__ == "__main__":
+    main()

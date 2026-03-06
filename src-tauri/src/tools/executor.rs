@@ -1,7 +1,8 @@
 use serde_json::Value;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
-use crate::commands::{confirmation, files, shell};
+use crate::commands::{confirmation, files};
+use crate::sandbox::manager::SandboxManager;
 use crate::tools::ActivatedSkill;
 
 pub async fn execute_tool(
@@ -51,32 +52,26 @@ pub async fn execute_tool(
         }
         "execute_shell" => {
             let command = get_str(&arguments, "command")?;
-            let cwd = arguments
-                .get("cwd")
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .or_else(|| {
-                    if working_dir.is_empty() {
-                        None
-                    } else {
-                        Some(working_dir.to_string())
-                    }
-                });
+
+            // 确认机制保持不变
             let approved = confirmation::request_confirmation(
                 app,
                 "shell_execute",
                 "执行命令",
-                "AI 请求执行 Shell 命令",
+                "AI 请求执行 Shell 命令（沙盒内）",
                 Some(&command),
             )
             .await?;
             if !approved {
                 return Ok("用户拒绝了命令执行".to_string());
             }
-            let output = shell::execute_shell(command, cwd)?;
+
+            // 通过沙盒执行（不再本地降级）
+            let sandbox = app.state::<SandboxManager>();
+            let result = sandbox.exec(&command, "/workspace", 30).await?;
             Ok(format!(
                 "exit code: {}\nstdout:\n{}\nstderr:\n{}",
-                output.exit_code, output.stdout, output.stderr
+                result.exit_code, result.stdout, result.stderr
             ))
         }
         "activate_skill" => {

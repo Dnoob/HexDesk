@@ -114,3 +114,19 @@ export interface AgentStep {
 export interface AgentPlan {
   steps: AgentStep[]
 }
+
+// Sandbox
+export type SandboxStatus = "not_installed" | "downloading" | "installing" | "starting" | "ready" | "error" | "disabled"
+
+export interface DownloadProgress {
+  downloaded: number
+  total: number
+  speed: number
+  phase: string
+}
+
+export interface AgentInfo {
+  version: string
+  python: string
+  node: string
+}

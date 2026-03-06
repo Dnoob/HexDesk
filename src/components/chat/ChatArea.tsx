@@ -4,6 +4,7 @@ import { useChatStore } from "@/stores/chat"
 import { useUIStore } from "@/stores/ui"
 import { MessageList } from "./MessageList"
 import { ChatInput } from "./ChatInput"
+import { SandboxBanner } from "./SandboxBanner"
 
 const suggestions = [
   {
@@ -102,6 +103,9 @@ export default function ChatArea() {
           {currentConversation?.title ?? "HexDesk"}
         </span>
       </div>
+
+      {/* Sandbox Banner */}
+      <SandboxBanner />
 
       {/* Content */}
       {currentConversationId ? (

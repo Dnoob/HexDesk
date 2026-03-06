@@ -20,22 +20,25 @@ import {
   Sun,
   Moon,
   Monitor,
+  Container,
 } from "lucide-react"
 import { useSettingsStore } from "@/stores/settings"
 import { useUIStore } from "@/stores/ui"
 import { useMcpStore } from "@/stores/mcp"
 import SchedulerPanel from "./SchedulerPanel"
+import SandboxSection from "./SandboxSection"
 
 interface SettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-type Section = "appearance" | "model" | "advanced"
+type Section = "appearance" | "model" | "sandbox" | "advanced"
 
 const navItems: { key: Section; label: string; icon: typeof Palette }[] = [
   { key: "appearance", label: "外观", icon: Palette },
   { key: "model", label: "模型", icon: Bot },
+  { key: "sandbox", label: "沙盒", icon: Container },
   { key: "advanced", label: "高级", icon: Wrench },
 ]
 
@@ -87,6 +90,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
           <div className="flex-1 overflow-y-auto p-6">
             {section === "appearance" && <AppearanceSection />}
             {section === "model" && <ModelSection />}
+            {section === "sandbox" && <SandboxSettingsSection />}
             {section === "advanced" && <AdvancedSection />}
           </div>
         </div>
@@ -262,6 +266,16 @@ function ModelSection() {
         placeholder="设定 AI 的行为和风格..."
         className="border-hex-blue/20 focus:border-hex-cyan/50 resize-none"
       />
+    </div>
+  )
+}
+
+/* ── 沙盒 ── */
+function SandboxSettingsSection() {
+  return (
+    <div className="flex flex-col gap-5">
+      <SectionTitle title="虚拟机沙盒" />
+      <SandboxSection />
     </div>
   )
 }

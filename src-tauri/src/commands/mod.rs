@@ -3,6 +3,7 @@ pub mod confirmation;
 pub mod documents;
 pub mod files;
 pub mod mcp;
+pub mod sandbox;
 pub mod settings;
 pub mod scheduler;
 pub mod shell;

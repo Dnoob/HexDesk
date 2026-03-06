@@ -1,0 +1,14 @@
+[Unit]
+Description=HexDesk Agent
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/hexdesk-agent
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
