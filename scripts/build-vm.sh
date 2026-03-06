@@ -83,7 +83,11 @@ apt-get install -y -qq --no-install-recommends \
     iproute2 iputils-ping net-tools \
     ca-certificates gnupg \
     systemd-resolved \
+    initramfs-tools \
     linux-image-virtual
+
+# minbase chroot 中 initrd 可能未自动生成，手动触发
+update-initramfs -c -k all
 
 # Node.js 20 LTS (via NodeSource)
 mkdir -p /etc/apt/keyrings
