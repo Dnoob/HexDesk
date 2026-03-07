@@ -22,12 +22,18 @@ main:
             done
             ls -lh /workspace/vm-output/
 
-        - name: Upload to CNB Release
+        - name: Create Release
+          type: git:release
+          options:
+            tag: vm-latest
+            title: "VM Image (latest)"
+            description: "Synced from GitHub Release. Fast download mirror for China."
+            overlying: false
+
+        - name: Upload Attachments
           image: cnbcool/attachments:latest
           settings:
             tag: vm-latest
-            title: "VM Image (latest)"
-            body: "Synced from GitHub Release. Fast download mirror for China."
             attachments:
               - /workspace/vm-output/ubuntu.img
               - /workspace/vm-output/vmlinuz
