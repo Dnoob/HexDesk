@@ -1,32 +1,33 @@
-# CNB CI: 构建 VM 镜像并上传到 CNB Release（国内高速下载源）
-# 触发条件：vm/ 或构建脚本变更时自动构建
+# CNB CI: 从 GitHub Release 同步 VM 镜像到 CNB Release（国内加速源）
+# VM 构建需要特权容器（mount/chroot），CNB 不支持，所以从 GitHub 搬运
 
 main:
   push:
-    - name: build-vm
+    - name: sync-vm-image
       ifModify:
         - "vm/**"
         - "scripts/build-vm.sh"
         - ".cnb.yml"
       docker:
         image: ubuntu:24.04
-      env:
-        OUTPUT_DIR: /workspace/vm-output
       stages:
-        - name: Build VM Image
+        - name: Download from GitHub Release
           script: |
-            apt-get update -qq && apt-get install -y -qq sudo git
-            sudo bash scripts/build-vm.sh
+            apt-get update -qq && apt-get install -y -qq curl
+            mkdir -p /workspace/vm-output
+            BASE="https://github.com/Dnoob/HexDesk/releases/download/vm-latest"
+            for f in ubuntu.img vmlinuz initrd ubuntu.img.sha256; do
+              echo "Downloading $f ..."
+              curl -L -f -o "/workspace/vm-output/$f" "$BASE/$f"
+            done
+            ls -lh /workspace/vm-output/
 
-        - name: Fix permissions
-          script: chmod -R a+r /workspace/vm-output/
-
-        - name: Upload to Release
+        - name: Upload to CNB Release
           image: cnbcool/attachments:latest
           settings:
             tag: vm-latest
             title: "VM Image (latest)"
-            body: "Auto-built VM image for HexDesk sandbox."
+            body: "Synced from GitHub Release. Fast download mirror for China."
             attachments:
               - /workspace/vm-output/ubuntu.img
               - /workspace/vm-output/vmlinuz
