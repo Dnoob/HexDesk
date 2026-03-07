@@ -2,6 +2,7 @@ use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 
+use crate::llm::compaction;
 use crate::llm::openai_compatible::{self, ToolCall};
 use crate::llm::provider::ChatMessage;
 use crate::state::AppState;
@@ -52,8 +53,28 @@ pub async fn send_message(
     let skills = activated_skills.unwrap_or_default();
     let tool_defs = tools::get_tool_definitions(&skills);
     let mut conversation = messages;
+    let context_limit = compaction::get_context_limit(&settings.model);
 
     for _ in 0..MAX_TOOL_ROUNDS {
+        // Compaction check before each LLM call
+        if compaction::needs_compaction(&conversation, context_limit) {
+            match compaction::compact_messages(&conversation, &settings).await {
+                Ok(result) if result.compressed => {
+                    conversation = result.messages;
+                    let _ = app.emit(
+                        "chat:compacted",
+                        compaction::CompactedPayload {
+                            summary_tokens: compaction::estimate_tokens(&conversation),
+                        },
+                    );
+                }
+                Err(e) => {
+                    eprintln!("Compaction failed: {}", e);
+                }
+                _ => {}
+            }
+        }
+
         let tool_calls = openai_compatible::stream_chat(
             &settings,
             &conversation,

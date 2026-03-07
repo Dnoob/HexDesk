@@ -60,6 +60,18 @@ export function MessageItem({
   const showCursor =
     !isUser && isLastAssistant && isStreaming && !!displayContent
 
+  // Compacted message card
+  if (message.isCompacted) {
+    return (
+      <div className="flex justify-center py-2">
+        <div className="flex items-center gap-2 rounded-lg border border-hex-blue/20 bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
+          <span>📋</span>
+          <span>{message.content}</span>
+        </div>
+      </div>
+    )
+  }
+
   if (isUser) {
     return (
       <div className="flex justify-end">

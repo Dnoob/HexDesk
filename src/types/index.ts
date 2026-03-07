@@ -8,10 +8,11 @@ export interface ToolCallInfo {
 
 export interface Message {
   id: string
-  role: "user" | "assistant"
+  role: "user" | "assistant" | "system"
   content: string
   images?: string[]
   toolCalls?: ToolCallInfo[]
+  isCompacted?: boolean
   createdAt: number
 }
 
