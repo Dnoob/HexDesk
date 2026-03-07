@@ -1,30 +1,32 @@
 # CNB CI: 构建 VM 镜像并上传到 CNB Release（国内高速下载源）
-# 触发条件：vm/ 或构建脚本变更，或手动触发
+# 触发条件：vm/ 或构建脚本变更时自动构建
 
 main:
   push:
-    - paths:
+    - name: build-vm
+      ifModify:
         - "vm/**"
         - "scripts/build-vm.sh"
-        - "cnb.yml"
+        - ".cnb.yml"
+      docker:
+        image: ubuntu:24.04
+      env:
+        OUTPUT_DIR: /workspace/vm-output
       stages:
         - name: Build VM Image
-          image: ubuntu:24.04
           script: |
             apt-get update -qq && apt-get install -y -qq sudo git
             sudo bash scripts/build-vm.sh
-          env:
-            OUTPUT_DIR: /workspace/vm-output
 
         - name: Fix permissions
           script: chmod -R a+r /workspace/vm-output/
 
-        - name: Create Release
+        - name: Upload to Release
           image: cnbcool/attachments:latest
           settings:
             tag: vm-latest
             title: "VM Image (latest)"
-            body: "Auto-built VM image for HexDesk sandbox. CNB mirror for fast download in China."
+            body: "Auto-built VM image for HexDesk sandbox."
             attachments:
               - /workspace/vm-output/ubuntu.img
               - /workspace/vm-output/vmlinuz
