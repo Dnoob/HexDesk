@@ -139,6 +139,14 @@ impl McpClient {
         response.result.ok_or("No result in tool call response".to_string())
     }
 
+    pub fn is_alive(&mut self) -> bool {
+        match self.child.try_wait() {
+            Ok(Some(_)) => false,
+            Ok(None) => true,
+            Err(_) => false,
+        }
+    }
+
     pub async fn shutdown(&mut self) -> Result<(), String> {
         // Drop stdin/stdout to close pipes
         self.stdin.take();

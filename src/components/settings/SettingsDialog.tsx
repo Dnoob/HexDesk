@@ -11,7 +11,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
-import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import {
   Palette,
@@ -158,7 +157,6 @@ function ModelSection() {
     baseUrl,
     maxTokens,
     temperature,
-    systemPrompt,
     updateSettings,
   } = useSettingsStore()
 
@@ -255,17 +253,6 @@ function ModelSection() {
         </div>
       </div>
 
-      {/* 系统提示词 */}
-      <SectionTitle title="系统提示词" className="mt-2" />
-
-      <Textarea
-        id="systemPrompt"
-        rows={4}
-        value={systemPrompt}
-        onChange={(e) => updateSettings({ systemPrompt: e.target.value })}
-        placeholder="设定 AI 的行为和风格..."
-        className="border-hex-blue/20 focus:border-hex-cyan/50 resize-none"
-      />
     </div>
   )
 }
@@ -304,8 +291,28 @@ function SectionTitle({ title, className }: { title: string; className?: string 
 }
 
 /* ── MCP ── */
+function StatusDot({ status }: { status?: string }) {
+  const isConnected = status === "connected"
+  const isReconnecting = status === "reconnecting"
+  const isError = status === "error"
+
+  return (
+    <span
+      className={`inline-block h-2 w-2 rounded-full shrink-0 ${
+        isConnected
+          ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]"
+          : isReconnecting
+            ? "bg-yellow-500 animate-pulse shadow-[0_0_6px_rgba(234,179,8,0.5)]"
+            : isError
+              ? "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]"
+              : "bg-muted-foreground/40"
+      }`}
+    />
+  )
+}
+
 function McpSection() {
-  const { servers, connectedTools, addServer, removeServer, connect, disconnect } = useMcpStore()
+  const { servers, connectedTools, serverStatus, addServer, removeServer, connect, disconnect } = useMcpStore()
   const [name, setName] = useState("")
   const [command, setCommand] = useState("")
   const [args, setArgs] = useState("")
@@ -348,7 +355,8 @@ function McpSection() {
   return (
     <div className="flex flex-col gap-3">
       {servers.map((server) => {
-        const isConnected = Boolean(connectedTools[server.name])
+        const status = serverStatus[server.name]
+        const isConnected = status === "connected" || Boolean(connectedTools[server.name])
         const toolCount = connectedTools[server.name]?.length ?? 0
         return (
           <div
@@ -356,13 +364,7 @@ function McpSection() {
             className="flex items-center gap-3 rounded-xl border border-hex-blue/20 p-3 text-sm transition-colors hover:border-hex-cyan/30 hover:bg-hex-blue/5"
           >
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span
-                className={`inline-block h-2 w-2 rounded-full shrink-0 ${
-                  isConnected
-                    ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)]"
-                    : "bg-muted-foreground/40"
-                }`}
-              />
+              <StatusDot status={status} />
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{server.name}</div>
                 <div className="text-muted-foreground truncate text-xs">
@@ -371,19 +373,26 @@ function McpSection() {
                 {isConnected && (
                   <div className="text-xs text-hex-cyan/70">{toolCount} 个工具</div>
                 )}
+                {status === "error" && (
+                  <div className="text-xs text-red-500">连接异常</div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <Button
                 size="sm"
                 variant={isConnected ? "outline" : "default"}
-                disabled={connecting === server.name}
+                disabled={connecting === server.name || status === "reconnecting"}
                 onClick={() =>
                   isConnected ? handleDisconnect(server.name) : handleConnect(server.name)
                 }
                 className={`text-xs ${!isConnected ? "bg-hex-blue/80 hover:bg-hex-blue text-white" : "border-hex-blue/30"}`}
               >
-                {connecting === server.name ? "..." : isConnected ? "断开" : "连接"}
+                {connecting === server.name || status === "reconnecting"
+                  ? "..."
+                  : isConnected
+                    ? "断开"
+                    : "连接"}
               </Button>
               <Button
                 size="sm"

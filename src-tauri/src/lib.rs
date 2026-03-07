@@ -27,6 +27,12 @@ pub fn run() {
             sql: include_str!("../migrations/002_scheduled_tasks.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "add is_compacted column to messages",
+            sql: include_str!("../migrations/003_add_compaction.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     tauri::Builder::default()
@@ -40,7 +46,7 @@ pub fn run() {
         .manage(AppState {
             settings: Mutex::new(state::Settings::default()),
             pending_confirmations: Mutex::new(std::collections::HashMap::new()),
-            mcp_clients: tokio::sync::Mutex::new(std::collections::HashMap::new()),
+            mcp_manager: tokio::sync::Mutex::new(mcp::McpManager::new()),
         })
         .manage(SandboxManager::new())
         .setup(|app| {
@@ -71,6 +77,7 @@ pub fn run() {
             commands::mcp::disconnect_mcp_server,
             commands::mcp::list_mcp_tools,
             commands::mcp::call_mcp_tool,
+            commands::mcp::replace_mcp_client,
             commands::scheduler::parse_cron_next_run,
             commands::sandbox::sandbox_get_state,
             commands::sandbox::sandbox_start,
@@ -80,6 +87,7 @@ pub fn run() {
             commands::sandbox::sandbox_mount_workspace,
             commands::sandbox::sandbox_clean_workspace,
             commands::sandbox::sandbox_set_enabled,
+            commands::skills::fetch_skill_from_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
