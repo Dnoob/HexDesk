@@ -20,7 +20,7 @@ struct DownloadItem {
 /// 镜像源（按优先级排序）
 const MIRROR_URLS: &[&str] = &[
     // CNB（国内高速）
-    "https://cnb.cool/Dnoob/HexDesk/-/releases/download/vm-latest",
+    "https://cnb.cool/noobcool/HexDesk/-/releases/download/vm-latest",
     // GitHub（海外）
     "https://github.com/Dnoob/HexDesk/releases/download/vm-latest",
 ];
