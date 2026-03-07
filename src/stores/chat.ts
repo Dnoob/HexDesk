@@ -34,6 +34,19 @@ interface ChatState {
   updateToolCallResult: (toolCallId: string, result: string) => void
 }
 
+// Debounce: merge rapid consecutive messages into one LLM call
+const DEBOUNCE_MS = 1000
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let pendingMessages: Array<{ content: string; images?: string[] }> = []
+
+function flushPendingMessages(): { content: string; images?: string[] } | null {
+  if (pendingMessages.length === 0) return null
+  const content = pendingMessages.map((m) => m.content).filter(Boolean).join("\n")
+  const images = pendingMessages.flatMap((m) => m.images ?? [])
+  pendingMessages = []
+  return { content, images: images.length > 0 ? images : undefined }
+}
+
 function generateId(): string {
   return crypto.randomUUID()
 }
@@ -48,6 +61,134 @@ function buildChatMessageContent(content: string, images?: string[]): string | C
     parts.push({ type: "text" as const, text: content })
   }
   return parts
+}
+
+async function doSendMessage(
+  get: () => ChatState,
+  set: (partial: Partial<ChatState> | ((state: ChatState) => Partial<ChatState>)) => void,
+) {
+  // Add empty assistant message as placeholder
+  get().addMessage("assistant", "")
+  set({ isStreaming: true })
+
+  // Build messages array for API (exclude the empty assistant placeholder)
+  const allMessages = get().messages
+  const { systemPrompt, workingDirectory } = useSettingsStore.getState()
+  const workingDirPrompt = workingDirectory
+    ? `\n\n当前工作目录: ${workingDirectory}\n所有文件操作和命令执行都在此目录下进行。使用相对路径即可，不要使用绝对路径。`
+    : ""
+  const agentPrompt = useAgentStore.getState().isAgentMode
+    ? "\n\n当用户给出复杂任务时，你应该：\n1. 先分析任务，制定一个分步执行计划\n2. 使用以下 JSON 格式输出计划：\n```json\n{\"plan\": [{\"step\": 1, \"description\": \"步骤描述\"}, ...]}\n```\n3. 然后逐步执行计划中的每个步骤，使用可用的工具完成\n4. 每完成一个步骤，报告进度"
+    : ""
+  const apiMessages: ChatMessage[] = [
+    { role: "system", content: systemPrompt + workingDirPrompt + agentPrompt },
+    ...allMessages.slice(0, -1).map((m) => ({
+      role: m.role,
+      content: buildChatMessageContent(m.content, m.images),
+    })),
+  ]
+
+  // Sync settings to backend before sending
+  const settings = useSettingsStore.getState()
+  try {
+    await invoke("save_settings", {
+      settings: {
+        provider: settings.provider,
+        apiKey: settings.apiKey,
+        model: settings.model,
+        baseUrl: settings.baseUrl,
+        maxTokens: settings.maxTokens,
+        temperature: settings.temperature,
+        systemPrompt: settings.systemPrompt,
+        workingDirectory: settings.workingDirectory,
+      },
+    })
+  } catch {
+    // Settings sync failure is non-fatal
+  }
+
+  // Set up event listeners
+  const unlistenChunk = await listen<ChunkPayload>("chat:chunk", (event) => {
+    get().appendToLastMessage(event.payload.content)
+  })
+
+  const unlistenDone = await listen("chat:done", () => {
+    // Done event received
+  })
+
+  const unlistenToolCall = await listen<{ id: string; function: { name: string; arguments: string } }>(
+    "chat:tool_call",
+    (event) => {
+      get().addToolCall(event.payload)
+    }
+  )
+
+  const unlistenToolResult = await listen<{ tool_call_id: string; result: string }>(
+    "chat:tool_result",
+    (event) => {
+      get().updateToolCallResult(event.payload.tool_call_id, event.payload.result)
+    }
+  )
+
+  const unlistenCompacted = await listen<{ summaryTokens: number }>(
+    "chat:compacted",
+    () => {
+      set((state) => ({
+        messages: [
+          ...state.messages.slice(0, 1),
+          {
+            id: crypto.randomUUID(),
+            role: "system" as const,
+            content: "历史消息已压缩，上下文已自动精简以继续对话",
+            createdAt: Date.now(),
+            isCompacted: true,
+          },
+          ...state.messages.slice(1),
+        ],
+      }))
+    }
+  )
+
+  // Build activated skills data for backend
+  const activatedSkills = useSkillsStore.getState().getActivatedSkills().map((s) => ({
+    id: s.id,
+    name: s.name,
+    description: s.description,
+    instruction: s.instruction,
+  }))
+
+  try {
+    await invoke("send_message", {
+      messages: apiMessages,
+      activatedSkills: activatedSkills.length > 0 ? activatedSkills : null,
+    })
+  } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error)
+    const currentMessages = get().messages
+    const lastMsg = currentMessages[currentMessages.length - 1]
+    if (lastMsg && lastMsg.role === "assistant" && lastMsg.content === "") {
+      get().appendToLastMessage(`Error: ${errMsg}`)
+    } else {
+      get().appendToLastMessage(`\n\nError: ${errMsg}`)
+    }
+  } finally {
+    set({ isStreaming: false })
+    unlistenChunk()
+    unlistenDone()
+    unlistenToolCall()
+    unlistenToolResult()
+    unlistenCompacted()
+
+    // Save final assistant message to DB
+    const convId = get().currentConversationId
+    const msgs = get().messages
+    const lastMsg = msgs[msgs.length - 1]
+    if (convId && lastMsg && lastMsg.role === "assistant") {
+      dbUpdateMessageContent(lastMsg.id, lastMsg.content).catch((e) =>
+        console.error("Failed to update message content in DB:", e)
+      )
+    }
+  }
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -88,6 +229,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   selectConversation: (id) => {
     if (get().currentConversationId === id) return
+    // Cancel pending debounce on conversation switch
+    if (debounceTimer) {
+      clearTimeout(debounceTimer)
+      debounceTimer = null
+    }
+    pendingMessages = []
     set({ currentConversationId: id, messages: [] })
     dbGetMessages(id)
       .then((messages) => {
@@ -186,113 +333,25 @@ export const useChatStore = create<ChatState>((set, get) => ({
       get().addConversation()
     }
 
-    // Add user message
+    // Show user message immediately (instant UI feedback)
     get().addMessage("user", content, images)
 
-    // Add empty assistant message as placeholder
-    get().addMessage("assistant", "")
+    // Add to pending queue
+    pendingMessages.push({ content, images })
 
-    set({ isStreaming: true })
+    // If already streaming, don't debounce — wait for current stream to finish
+    if (state.isStreaming) return
 
-    // Build messages array for API (exclude the empty assistant placeholder)
-    const allMessages = get().messages
-    const { systemPrompt, workingDirectory } = useSettingsStore.getState()
-    const workingDirPrompt = workingDirectory
-      ? `\n\n当前工作目录: ${workingDirectory}\n所有文件操作和命令执行都在此目录下进行。使用相对路径即可，不要使用绝对路径。`
-      : ""
-    const agentPrompt = useAgentStore.getState().isAgentMode
-      ? "\n\n当用户给出复杂任务时，你应该：\n1. 先分析任务，制定一个分步执行计划\n2. 使用以下 JSON 格式输出计划：\n```json\n{\"plan\": [{\"step\": 1, \"description\": \"步骤描述\"}, ...]}\n```\n3. 然后逐步执行计划中的每个步骤，使用可用的工具完成\n4. 每完成一个步骤，报告进度"
-      : ""
-    const apiMessages: ChatMessage[] = [
-      { role: "system", content: systemPrompt + workingDirPrompt + agentPrompt },
-      ...allMessages.slice(0, -1).map((m) => ({
-        role: m.role,
-        content: buildChatMessageContent(m.content, m.images),
-      })),
-    ]
+    // Reset debounce timer
+    if (debounceTimer) clearTimeout(debounceTimer)
 
-    // Sync settings to backend before sending
-    const settings = useSettingsStore.getState()
-    try {
-      await invoke("save_settings", {
-        settings: {
-          provider: settings.provider,
-          apiKey: settings.apiKey,
-          model: settings.model,
-          baseUrl: settings.baseUrl,
-          maxTokens: settings.maxTokens,
-          temperature: settings.temperature,
-          systemPrompt: settings.systemPrompt,
-          workingDirectory: settings.workingDirectory,
-        },
-      })
-    } catch {
-      // Settings sync failure is non-fatal
-    }
-
-    // Set up event listeners
-    const unlistenChunk = await listen<ChunkPayload>("chat:chunk", (event) => {
-      get().appendToLastMessage(event.payload.content)
-    })
-
-    const unlistenDone = await listen("chat:done", () => {
-      // Done event received
-    })
-
-    const unlistenToolCall = await listen<{ id: string; function: { name: string; arguments: string } }>(
-      "chat:tool_call",
-      (event) => {
-        get().addToolCall(event.payload)
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null
+      const merged = flushPendingMessages()
+      if (merged) {
+        doSendMessage(get, set)
       }
-    )
-
-    const unlistenToolResult = await listen<{ tool_call_id: string; result: string }>(
-      "chat:tool_result",
-      (event) => {
-        get().updateToolCallResult(event.payload.tool_call_id, event.payload.result)
-      }
-    )
-
-    // Build activated skills data for backend
-    const activatedSkills = useSkillsStore.getState().getActivatedSkills().map((s) => ({
-      id: s.id,
-      name: s.name,
-      description: s.description,
-      instruction: s.instruction,
-    }))
-
-    try {
-      await invoke("send_message", {
-        messages: apiMessages,
-        activatedSkills: activatedSkills.length > 0 ? activatedSkills : null,
-      })
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error)
-      const currentMessages = get().messages
-      const lastMsg = currentMessages[currentMessages.length - 1]
-      if (lastMsg && lastMsg.role === "assistant" && lastMsg.content === "") {
-        // Replace empty placeholder with error
-        get().appendToLastMessage(`Error: ${errMsg}`)
-      } else {
-        get().appendToLastMessage(`\n\nError: ${errMsg}`)
-      }
-    } finally {
-      set({ isStreaming: false })
-      unlistenChunk()
-      unlistenDone()
-      unlistenToolCall()
-      unlistenToolResult()
-
-      // Save final assistant message to DB
-      const convId = get().currentConversationId
-      const msgs = get().messages
-      const lastMsg = msgs[msgs.length - 1]
-      if (convId && lastMsg && lastMsg.role === "assistant") {
-        dbUpdateMessageContent(lastMsg.id, lastMsg.content).catch((e) =>
-          console.error("Failed to update message content in DB:", e)
-        )
-      }
-    }
+    }, DEBOUNCE_MS)
   },
 
   stopStreaming: () => {
