@@ -12,10 +12,18 @@ pub struct ImageDownloader;
 
 /// 下载项（镜像、内核等）
 struct DownloadItem {
-    url: String,
+    filename: String,
     dest: String,
     phase: String,
 }
+
+/// 镜像源（按优先级排序）
+const MIRROR_URLS: &[&str] = &[
+    // CNB（国内高速）
+    "https://cnb.cool/Dnoob/HexDesk/-/releases/download/vm-latest",
+    // GitHub（海外）
+    "https://github.com/Dnoob/HexDesk/releases/download/vm-latest",
+];
 
 impl ImageDownloader {
     /// 检查镜像是否已安装（镜像 + 内核 + initrd 都存在）
@@ -35,30 +43,24 @@ impl ImageDownloader {
             .await
             .map_err(|e| format!("Failed to create vm dir: {}", e))?;
 
-        let base_url = if config.download_url.is_empty() {
-            "https://github.com/Dnoob/HexDesk/releases/download/vm-latest".to_string()
-        } else {
-            config.download_url.clone()
-        };
-
         let mut items = vec![
             DownloadItem {
-                url: format!("{}/ubuntu.img", base_url),
+                filename: "ubuntu.img".to_string(),
                 dest: config.image_path(),
                 phase: "downloading_image".to_string(),
             },
             DownloadItem {
-                url: format!("{}/vmlinuz", base_url),
+                filename: "vmlinuz".to_string(),
                 dest: config.kernel_path(),
                 phase: "downloading_kernel".to_string(),
             },
             DownloadItem {
-                url: format!("{}/initrd", base_url),
+                filename: "initrd".to_string(),
                 dest: config.initrd_path(),
                 phase: "downloading_initrd".to_string(),
             },
             DownloadItem {
-                url: format!("{}/ubuntu.img.sha256", base_url),
+                filename: "ubuntu.img.sha256".to_string(),
                 dest: config.checksum_path(),
                 phase: "downloading_checksum".to_string(),
             },
@@ -72,7 +74,7 @@ impl ImageDownloader {
                 .map_err(|e| format!("Failed to create qemu dir: {}", e))?;
 
             items.push(DownloadItem {
-                url: format!("{}/qemu-system-x86_64.exe", base_url),
+                filename: "qemu-system-x86_64.exe".to_string(),
                 dest: config.qemu_binary(),
                 phase: "downloading_qemu".to_string(),
             });
@@ -83,13 +85,26 @@ impl ImageDownloader {
                 .map_err(|e| format!("Failed to create winnfsd dir: {}", e))?;
 
             items.push(DownloadItem {
-                url: format!("{}/WinNFSd.exe", base_url),
+                filename: "WinNFSd.exe".to_string(),
                 dest: config.winnfsd_path(),
                 phase: "downloading_winnfsd".to_string(),
             });
         }
 
-        let client = Client::new();
+        // 构建镜像源列表：用户自定义 > 内置镜像源
+        let mirrors: Vec<String> = if config.download_url.is_empty() {
+            MIRROR_URLS.iter().map(|s| s.to_string()).collect()
+        } else {
+            // 用户自定义源放最前，内置源作为 fallback
+            let mut m = vec![config.download_url.clone()];
+            m.extend(MIRROR_URLS.iter().map(|s| s.to_string()));
+            m
+        };
+
+        let client = Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .build()
+            .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
         for item in &items {
             // 如果文件已存在则跳过
@@ -97,7 +112,15 @@ impl ImageDownloader {
                 continue;
             }
 
-            Self::download_file(app, &client, &item.url, &item.dest, &item.phase).await?;
+            Self::download_with_fallback(
+                app,
+                &client,
+                &mirrors,
+                &item.filename,
+                &item.dest,
+                &item.phase,
+            )
+            .await?;
         }
 
         // 校验镜像
@@ -111,6 +134,51 @@ impl ImageDownloader {
         Self::verify_image(config).await?;
 
         Ok(())
+    }
+
+    /// 尝试多个镜像源下载，第一个成功即返回
+    async fn download_with_fallback(
+        app: &AppHandle,
+        client: &Client,
+        mirrors: &[String],
+        filename: &str,
+        dest: &str,
+        phase: &str,
+    ) -> Result<(), String> {
+        let mut last_error = String::new();
+
+        for (i, base_url) in mirrors.iter().enumerate() {
+            let url = format!("{}/{}", base_url, filename);
+            let mirror_name = if url.contains("cnb.cool") {
+                "CNB"
+            } else if url.contains("github.com") {
+                "GitHub"
+            } else {
+                "Custom"
+            };
+
+            eprintln!("Trying mirror {} ({}/{}): {}", mirror_name, i + 1, mirrors.len(), url);
+
+            match Self::download_file(app, client, &url, dest, phase).await {
+                Ok(()) => {
+                    eprintln!("Download succeeded from {}: {}", mirror_name, filename);
+                    return Ok(());
+                }
+                Err(e) => {
+                    eprintln!("Mirror {} failed: {}", mirror_name, e);
+                    last_error = format!("{} ({})", e, mirror_name);
+                    // 清理失败的临时文件
+                    let tmp = format!("{}.tmp", dest);
+                    let _ = tokio::fs::remove_file(&tmp).await;
+                    continue;
+                }
+            }
+        }
+
+        Err(format!(
+            "All mirrors failed for {}: {}",
+            filename, last_error
+        ))
     }
 
     /// 下载单个文件，实时报告进度
