@@ -1,7 +1,9 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import { invoke } from "@tauri-apps/api/core"
 import type { Skill } from "@/types"
 import { builtinSkills } from "@/data/builtin-skills"
+import { parseSkillMd, exportToSkillMd } from "@/lib/skill-parser"
 
 interface SkillsState {
   skills: Skill[]
@@ -16,6 +18,10 @@ interface SkillsState {
 
   getActivatedSkillsMeta: () => { id: string; name: string; description: string }[]
   getSkillInstruction: (id: string) => string | undefined
+
+  importFromText: (text: string) => Skill
+  importFromUrl: (url: string) => Promise<Skill>
+  exportSkill: (id: string) => string | null
 }
 
 export const useSkillsStore = create<SkillsState>()(
@@ -71,6 +77,41 @@ export const useSkillsStore = create<SkillsState>()(
 
       getSkillInstruction: (id) => {
         return get().skills.find((s) => s.id === id)?.instruction
+      },
+
+      importFromText: (text) => {
+        const parsed = parseSkillMd(text)
+        // Deduplicate name
+        const existing = get().skills
+        let name = parsed.name
+        if (existing.some((s) => s.name === name)) {
+          let i = 2
+          while (existing.some((s) => s.name === `${parsed.name} (${i})`)) i++
+          name = `${parsed.name} (${i})`
+        }
+        const skill: Skill = {
+          id: crypto.randomUUID(),
+          name,
+          description: parsed.description,
+          icon: parsed.icon,
+          category: parsed.category,
+          instruction: parsed.instruction,
+          author: parsed.author,
+          tags: parsed.tags,
+        }
+        set((state) => ({ skills: [...state.skills, skill] }))
+        return skill
+      },
+
+      importFromUrl: async (url) => {
+        const text = await invoke<string>("fetch_skill_from_url", { url })
+        return get().importFromText(text)
+      },
+
+      exportSkill: (id) => {
+        const skill = get().skills.find((s) => s.id === id)
+        if (!skill) return null
+        return exportToSkillMd(skill)
       },
     }),
     {
